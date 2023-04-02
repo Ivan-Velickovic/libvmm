@@ -34,6 +34,14 @@ const src_aarch64 = [_][]const u8{
     "src/arch/aarch64/vcpu.c",
 };
 
+const src_riscv64 = [_][]const u8{
+    "src/arch/riscv/fault.c",
+    "src/arch/riscv/linux.c",
+    "src/arch/riscv/tcb.c",
+    "src/arch/riscv/vcpu.c",
+    "src/arch/riscv/virq.c",
+};
+
 pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
     const target = b.standardTargetOptions(.{});
@@ -59,7 +67,7 @@ pub fn build(b: *std.Build) void {
         .libmicrokit_linker_script = @as([]const u8, libmicrokit_linker_script_opt.?),
     });
 
-    const src_arch = switch (target.result.cpu.arch) {
+    const src_files = switch (target.result.cpu.arch) {
         .aarch64 => blk: {
             const vgic_src = switch (arm_vgic_version.?) {
                 2 => src_aarch64_vgic_v2,
@@ -67,15 +75,16 @@ pub fn build(b: *std.Build) void {
                 else => @panic("Unsupported vGIC version given"),
             };
 
-            break :blk src_aarch64 ++ vgic_src;
+            break :blk &(src ++ src_aarch64 ++ vgic_src);
         },
+        .riscv64 => &(src ++ src_riscv64),
         else => {
             std.log.err("Unsupported libvmm architecture given '{s}'", .{ @tagName(target.result.cpu.arch) });
             std.posix.exit(1);
         }
     };
     libvmm.addCSourceFiles(.{
-        .files = &(src ++ src_arch),
+        .files = src_files,
         .flags = &.{
             "-Wall",
             "-Werror",

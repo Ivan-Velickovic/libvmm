@@ -21,6 +21,9 @@
 // Note that this is AArch64 specific
 #if defined(CONFIG_ARCH_AARCH64)
 #define SEL4_USER_CONTEXT_SIZE 0x24
+#elif defined(CONFIG_ARCH_RISCV)
+// @ivanv: fix
+#define SEL4_USER_CONTEXT_SIZE (sizeof(seL4_UserContext))
 #endif
 
 #ifndef ARRAY_SIZE

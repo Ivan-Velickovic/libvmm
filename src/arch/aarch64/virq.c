@@ -51,6 +51,11 @@ bool virq_inject(size_t vcpu_id, int irq) {
     return vgic_inject_irq(vcpu_id, irq);
 }
 
+bool virq_set_level(size_t vcpu_id, int irq, bool level)
+{
+    return vgic_irq_set_level(vcpu_id, irq, level);
+}
+
 bool virq_register(size_t vcpu_id, size_t virq_num, virq_ack_fn_t ack_fn, void *ack_data) {
     return vgic_register_irq(vcpu_id, virq_num, ack_fn, ack_data);
 }

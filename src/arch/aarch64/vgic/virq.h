@@ -32,6 +32,7 @@
 
 struct virq_handle {
     int virq;
+    bool level;
     virq_ack_fn_t ack_fn;
     void *ack_data;
 };

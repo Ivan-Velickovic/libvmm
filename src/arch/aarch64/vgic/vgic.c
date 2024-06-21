@@ -23,6 +23,33 @@
 /* The driver expects the VGIC state to be initialised before calling any of the driver functionality. */
 extern vgic_t vgic;
 
+static bool vgic_handle_level(vgic_t *vgic, int vcpu_id,
+                              struct virq_handle *irq)
+{
+    struct gic_dist_map *dist = vgic_get_dist(vgic->registers);
+
+    /* Re-inject IRQ for level sensitive irq emulation, otherwise clear level */
+    if (irq->level && !vgic_dist_is_edge_triggered(dist, irq->virq)) {
+        return vgic_dist_set_pending_irq(vgic, vcpu_id, irq->virq);
+    }
+
+    irq->level = false;
+    return true;
+}
+
+void vgic_irq_ack(vgic_t *vgic, int vcpu_id, struct virq_handle *irq)
+{
+    assert(vgic);
+    assert(irq);
+
+    virq_ack(vcpu_id, irq);
+
+    /* Handle level sensitive irq emulation */
+    if (!vgic_handle_level(vgic, vcpu_id, irq)) {
+        printf("VGIC|ERROR: failed to handle level for %d\n", irq->virq);
+    }
+}
+
 bool fault_handle_vgic_maintenance(size_t vcpu_id)
 {
     // @ivanv: reivist, also inconsistency between int and bool
@@ -45,7 +72,7 @@ bool fault_handle_vgic_maintenance(size_t vcpu_id)
     /* Clear pending */
     LOG_IRQ("Maintenance IRQ %d\n", lr_virq.virq);
     set_pending(vgic_get_dist(vgic.registers), lr_virq.virq, false, vcpu_id);
-    virq_ack(vcpu_id, &lr_virq);
+    vgic_irq_ack(&vgic, vcpu_id, &lr_virq);
     /* Check the overflow list for pending IRQs */
     struct virq_handle *virq = vgic_irq_dequeue(&vgic, vcpu_id);
 
@@ -74,6 +101,7 @@ bool vgic_register_irq(size_t vcpu_id, int virq_num, virq_ack_fn_t ack_fn, void 
     assert(virq_num >= 0 && virq_num != VIRQ_INVALID);
     struct virq_handle virq = {
         .virq = virq_num,
+        .level = false,
         .ack_fn = ack_fn,
         .ack_data = ack_data,
     };
@@ -94,6 +122,26 @@ bool vgic_inject_irq(size_t vcpu_id, int irq)
     //     // ignore_fault(vcpu->vcpu_arch.fault);
     //     err = advance_vcpu_fault(regs);
     // }
+}
+
+bool vgic_irq_set_level(size_t vcpu_id, int irq, bool level)
+{
+    bool changed;
+    struct virq_handle *virq = virq_find_irq_data(&vgic, vcpu_id, irq);
+    if (!virq) {
+        printf("VGIC|ERROR: maintenance handler failed\n");
+        return false;
+    }
+
+    changed = (virq->level != level);
+    virq->level = level;
+
+    /* inject only at rising edge */
+    if (virq->level && changed) {
+	return vgic_inject_irq(vcpu_id, irq);
+    }
+
+    return true;
 }
 
 // @ivanv: revisit this whole function

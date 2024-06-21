@@ -64,3 +64,4 @@ bool handle_vgic_dist_fault(size_t vcpu_id, uint64_t fault_addr, uint64_t fsr, s
 bool handle_vgic_redist_fault(size_t vcpu_id, uint64_t fault_addr, uint64_t fsr, seL4_UserContext *regs);
 bool vgic_register_irq(size_t vcpu_id, int virq_num, virq_ack_fn_t ack_fn, void *ack_data);
 bool vgic_inject_irq(size_t vcpu_id, int irq);
+bool vgic_irq_set_level(size_t vcpu_id, int irq, bool level);

@@ -15,6 +15,8 @@
 #define IRQ_IDX(irq) ((irq) / 32)
 #define IRQ_BIT(irq) (1U << ((irq) % 32))
 
+void vgic_irq_ack(vgic_t *vgic, int vcpu_id, struct virq_handle *irq);
+
 static inline void set_sgi_ppi_pending(struct gic_dist_map *gic_dist, int irq, bool set_pending, int vcpu_id)
 {
     if (set_pending) {
@@ -147,7 +149,7 @@ static void vgic_dist_enable_irq(vgic_t *vgic, size_t vcpu_id, int irq)
     if (virq_data->virq != VIRQ_INVALID) {
         /* STATE b) */
         if (!is_pending(vgic_get_dist(vgic->registers), virq_data->virq, vcpu_id)) {
-            virq_ack(vcpu_id, virq_data);
+            vgic_irq_ack(vgic, vcpu_id, virq_data);
         }
     } else {
         LOG_DIST("Enabled IRQ %d has no handle\n", irq);
@@ -244,6 +246,16 @@ static void vgic_dist_clr_pending_irq(struct gic_dist_map *dist, size_t vcpu_id,
     set_pending(dist, irq, false, vcpu_id);
     /* TODO: remove from IRQ queue and list registers as well */
     // @ivanv
+}
+
+static bool vgic_dist_is_edge_triggered(struct gic_dist_map *dist, int irq)
+{
+    assert(dist);
+
+    uint32_t mask = 0x2 << ((irq % 16) * 2);
+    uint32_t reg_offset = (irq / 16);
+
+    return !!(dist->config[reg_offset] & mask);
 }
 
 static bool vgic_dist_reg_read(size_t vcpu_id, vgic_t *vgic, uint64_t offset, uint64_t fsr, seL4_UserContext *regs)
@@ -545,14 +557,29 @@ static bool vgic_dist_reg_write(size_t vcpu_id, vgic_t *vgic, uint64_t offset, u
     case RANGE32(0xBFC, 0xBFC):
         /* Reserved */
         break;
-    case RANGE32(GIC_DIST_ICFGR0, GIC_DIST_ICFGRN):
+    case RANGE32(GIC_DIST_ICFGR0, GIC_DIST_ICFGR1):
+        /* All SGIs are edge triggered, thus ICFGR0 read-only. Setting
+         * configuration for PPIs is IMPLEMENTATION DEFINED, so ignore writes
+         * to ICFGR1. */
+        break;
+    case RANGE32(GIC_DIST_ICFGR2, GIC_DIST_ICFGRN): {
         /*
          * Emulate accesses to interrupt configuration registers to set the IRQ
          * to be edge-triggered or level-sensitive.
          */
+        uint32_t config_mask = 0xAAAAAAAA;
+        uint32_t before;
+
         reg_offset = GIC_DIST_REGN(offset, GIC_DIST_ICFGR0);
+        before = gic_dist->config[reg_offset];
         emulate_reg_write_access(regs, addr, fsr, &gic_dist->config[reg_offset]);
+
+        /* Allow changes only to Int_config[1] */
+        gic_dist->config[reg_offset] &= config_mask;
+        /* Retain Int_config[0] */
+        gic_dist->config[reg_offset] |= (before & ~config_mask);
         break;
+    }
     case RANGE32(0xD00, 0xDFC):
         /* IMPLEMENTATION DEFINED registers. */
         break;

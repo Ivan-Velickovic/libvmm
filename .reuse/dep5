@@ -7,6 +7,7 @@ Files:
     build.zig.zon
     examples/simple/build.zig.zon
     examples/zig/build.zig.zon
+    examples/virtio/build.zig.zon
     examples/rust/Cargo.lock
     examples/rust/.cargo/config
     examples/rust/aarch64-microkit-minimal.json

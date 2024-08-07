@@ -40,7 +40,7 @@ COUNT=$(( MEMSIZE / FDISK_LSIZE ))
 COUNT=$(( COUNT / MULTIPLE * MULTIPLE)) # Ensure COUNT is a multiple of sDDF transfer size and logical size
 
 # Create a file to act as a virtual disk
-dd if=/dev/zero of=$DISK_IMAGE bs=$FDISK_LSIZE count=$COUNT
+dd if=/dev/zero of=$DISK_IMAGE bs=$FDISK_LSIZE count=$COUNT 2> /dev/null
 
 POFFSET=$MULTIPLE
 
@@ -68,8 +68,6 @@ done
 echo w # Write changes
 } | fdisk $DISK_IMAGE
 
-fdisk -l $DISK_IMAGE
-
 # Create the FAT filesystem
 rm -f $BUILD_DIR/fat.img
 mkfs.fat -C $BUILD_DIR/fat.img $(( (FS_COUNT * FDISK_LSIZE) / 1024 ))
@@ -78,5 +76,5 @@ mkfs.fat -C $BUILD_DIR/fat.img $(( (FS_COUNT * FDISK_LSIZE) / 1024 ))
 for i in $(seq 0 $(( NUM_PARTITIONS - 1 )))
 do
     echo "Copying FAT filesystem to partition $i, seek=$((POFFSET + i * FS_COUNT)), count=$FS_COUNT, bs=$FDISK_LSIZE"
-    dd if=$BUILD_DIR/fat.img of=$DISK_IMAGE bs=$FDISK_LSIZE seek="$((POFFSET + i * FS_COUNT))" count=$FS_COUNT
+    dd if=$BUILD_DIR/fat.img of=$DISK_IMAGE bs=$FDISK_LSIZE seek="$((POFFSET + i * FS_COUNT))" count=$FS_COUNT 2> /dev/null
 done

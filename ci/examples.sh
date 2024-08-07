@@ -88,7 +88,7 @@ simulate_simple_make() {
     ./ci/buildroot_login.exp ${BUILD_DIR}/loader.img
 }
 
-build_virtio() {
+build_virtio_make() {
     BOARD=$1
     CONFIG=$2
     echo "CI|INFO: building virtio example via Make with board: $BOARD and config: $CONFIG"
@@ -99,6 +99,22 @@ build_virtio() {
         MICROKIT_CONFIG=${CONFIG} \
         MICROKIT_BOARD=${BOARD} \
         MICROKIT_SDK=${SDK_PATH}
+}
+
+build_virtio_zig() {
+    BOARD=$1
+    CONFIG=$2
+    echo "CI|INFO: building virtio example via Zig with board: $BOARD and config: $CONFIG"
+    BUILD_DIR="${PWD}/build/examples/virtio/zig/${BOARD}/${CONFIG}"
+    EXAMPLE_DIR="${PWD}/examples/virtio"
+    mkdir -p ${BUILD_DIR}
+    pushd ${EXAMPLE_DIR}
+    zig build \
+        -Dsdk=${SDK_PATH} \
+        -Dboard=${BOARD} \
+        -Dconfig=${CONFIG} \
+        -p ${BUILD_DIR}
+    popd
 }
 
 simulate_zig() {
@@ -155,10 +171,15 @@ simulate_zig "release" "ReleaseSmall"
 # Linux-specific utilities not being available.
 # if [ "$(uname)" == "Linux" ]; then
 
-# build_virtio "qemu_virt_aarch64" "debug"
-# build_virtio "qemu_virt_aarch64" "release"
-# build_virtio "odroidc4" "debug"
-# build_virtio "odroidc4" "release"
+build_virtio_make "qemu_virt_aarch64" "debug"
+build_virtio_make "qemu_virt_aarch64" "release"
+# build_virtio_make "odroidc4" "debug"
+# build_virtio_make "odroidc4" "release"
+
+build_virtio_zig "qemu_virt_aarch64" "debug"
+build_virtio_zig "qemu_virt_aarch64" "release"
+# build_virtio_zig "odroidc4" "debug"
+# build_virtio_zig "odroidc4" "release"
 
 # fi
 

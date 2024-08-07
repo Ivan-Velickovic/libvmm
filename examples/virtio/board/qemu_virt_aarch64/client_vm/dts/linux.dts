@@ -38,7 +38,6 @@
 		interrupts = <0x00 0x01 0x04>;
 		reg = <0x00 0x9000000 0x00 0x1000>;
 		compatible = "arm,pl011\0arm,primecell";
-		status = "disabled";
 	};
 
 	pmu {
@@ -62,7 +61,6 @@
 		bank-width = <0x04>;
 		reg = <0x00 0x00 0x00 0x4000000 0x00 0x4000000 0x00 0x4000000>;
 		compatible = "cfi-flash";
-		status = "disabled";
 	};
 
 	cpus {

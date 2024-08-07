@@ -1,0 +1,25 @@
+/*
+ * Copyright 2024, UNSW
+ *
+ * SPDX-License-Identifier: BSD-2-Clause
+ */
+/ {
+    /delete-node/ pl011@9000000;
+    /delete-node/ flash@0;
+
+    pl011@9000000 {
+		clock-names = "uartclk\0apb_pclk";
+		clocks = <0x8000 0x8000>;
+		interrupts = <0x00 0x01 0x04>;
+		reg = <0x00 0x9000000 0x00 0x1000>;
+		compatible = "arm,pl011\0arm,primecell";
+        status = "disabled";
+	};
+
+    flash@0 {
+		bank-width = <0x04>;
+		reg = <0x00 0x00 0x00 0x4000000 0x00 0x4000000 0x00 0x4000000>;
+		compatible = "cfi-flash";
+        status = "disabled";
+	};
+};

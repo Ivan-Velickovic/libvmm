@@ -8,6 +8,8 @@
 # Useful for when you have a single DTS
 # Author: tim-arney
 
+set -e
+
 usage() {
     cmd=$(basename "$0")
     echo "usage: $cmd <base_dts> [<overlay1> ... <overlayN>]" >&2

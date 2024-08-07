@@ -22,11 +22,13 @@ in
         llvm.lld
         llvm.libllvm
         llvm.libclang
+        util-linux
+        dosfstools
         # expect is only needed for CI testing but we include it for
         # completeness
         expect
         # For when we need to build user-space applications for Linux guests
-        linux_aarch64_cross.buildPackages.gcc
+        # linux_aarch64_cross.buildPackages.gcc
     ];
     hardeningDisable = [ "all" ];
     # Need to specify this when using Rust with bindgen

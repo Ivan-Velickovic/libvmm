@@ -36,7 +36,7 @@ const guest_kernel_image = blk: {
 // Data for the device tree to be passed to the kernel.
 const guest_dtb_image = @embedFile("dtb");
 // Data for the initial RAM disk to be passed to the kernel.
-const guest_initrd_image = @embedFile("rootfs");
+const guest_initrd_image = @embedFile("initrd");
 
 // In Zig the standard library comes with printf-like functionality with the
 // ability to provide your own function to ouput the characters. This is

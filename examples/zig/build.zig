@@ -76,12 +76,16 @@ pub fn build(b: *std.Build) void {
     });
     dtc_cmd.addFileArg(b.path("images/linux.dts"));
     const dtb = dtc_cmd.captureStdOut();
+    // The artefacts that are pre-compiled (Linux kernel and init RAM disk) are
+    // dependencies that are fetched by the build process.
+    const linux_kernel = b.dependency("linux", .{}).path("Image");
+    const initrd = b.dependency("initrd", .{}).path("rootfs.cpio.gz");
     // When we embed these artifacts into our VMM code, we use @embedFile provided by
     // the Zig compiler. However, we can't just include any path outside of the 'src/'
     // directory and so we add each file as a "module".
     exe.root_module.addAnonymousImport("dtb", .{ .root_source_file = dtb });
-    exe.root_module.addAnonymousImport("linux", .{ .root_source_file = b.path("images/linux") });
-    exe.root_module.addAnonymousImport("rootfs", .{ .root_source_file = b.path("images/rootfs.cpio.gz") });
+    exe.root_module.addAnonymousImport("linux", .{ .root_source_file = linux_kernel });
+    exe.root_module.addAnonymousImport("initrd", .{ .root_source_file = initrd });
 
     exe.addIncludePath(b.path("src/"));
     // Add microkit.h to be used by the API wrapper.

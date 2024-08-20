@@ -17,6 +17,9 @@ vpath %.c $(LIBVMM) $(EXAMPLE_DIR)
 
 IMAGES := vmm.elf
 
+INITRD := buildroot-2022.08-rc2-be278ab1dbe811cfbd009420350c11f94b004c4e71a68cebffa72506a3989e48/rootfs.cpio.gz
+LINUX := linux-v5.18-068d92ede39bf36b416507de053468332f39dbbe75cd35ebb6564614bbef08fd/Image
+
 CFLAGS := \
 	  -mstrict-align \
 	  -ffreestanding \
@@ -52,8 +55,11 @@ $(IMAGES): libvmm.a
 $(IMAGE_FILE) $(REPORT_FILE): $(IMAGES) $(SYSTEM_FILE)
 	$(MICROKIT_TOOL) $(SYSTEM_FILE) --search-path $(BUILD_DIR) --board $(MICROKIT_BOARD) --config $(MICROKIT_CONFIG) -o $(IMAGE_FILE) -r $(REPORT_FILE)
 
-rootfs.cpio.gz: $(SYSTEM_DIR)/rootfs.cpio.gz
-	cp $(SYSTEM_DIR)/rootfs.cpio.gz $(BUILD_DIR)/rootfs.cpio.gz
+linux: $(LINUX)
+	curl -L https://trustworthy.systems/Downloads/libvmm/images/$@ -o linux
+
+rootfs.cpio.gz: $(INITRD)
+	curl -L https://trustworthy.systems/Downloads/libvmm/images/$@ -o rootfs.cpio.gz
 
 vm.dts: $(SYSTEM_DIR)/linux.dts $(SYSTEM_DIR)/overlay.dts
 	$(LIBVMM)/tools/dtscat $^ > $@
@@ -64,9 +70,9 @@ vm.dtb: vm.dts
 vmm.o: $(EXAMPLE_DIR)/vmm.c $(CHECK_FLAGS_BOARD_MD5)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-images.o: $(LIBVMM)/tools/package_guest_images.S $(SYSTEM_DIR)/linux vm.dtb rootfs.cpio.gz
+images.o: $(LIBVMM)/tools/package_guest_images.S $(LINUX) $(INITRD) vm.dtb
 	$(CC) -c -g3 -x assembler-with-cpp \
-					-DGUEST_KERNEL_IMAGE_PATH=\"$(SYSTEM_DIR)/linux\" \
+					-DGUEST_KERNEL_IMAGE_PATH=\"linux\" \
 					-DGUEST_DTB_IMAGE_PATH=\"vm.dtb\" \
 					-DGUEST_INITRD_IMAGE_PATH=\"rootfs.cpio.gz\" \
 					-target $(TARGET) \

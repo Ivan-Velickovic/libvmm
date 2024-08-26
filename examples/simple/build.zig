@@ -161,7 +161,7 @@ pub fn build(b: *std.Build) void {
     // We need to produce the DTB from the DTS before doing anything to produce guest_images
     guest_images.step.dependOn(&b.addInstallFileWithDir(dtb, .prefix, "linux.dtb").step);
 
-    const linux_image = b.dependency("linux", .{}).path("Image");
+    const linux_image = b.dependency("linux", .{}).path("linux");
     const initrd_image = b.dependency("initrd", .{}).path("rootfs.cpio.gz");
     guest_images.step.dependOn(&b.addInstallFileWithDir(linux_image, .prefix, "linux").step);
     guest_images.step.dependOn(&b.addInstallFileWithDir(initrd_image, .prefix, "rootfs.cpio.gz").step);

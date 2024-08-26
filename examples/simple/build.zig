@@ -161,10 +161,16 @@ pub fn build(b: *std.Build) void {
     // We need to produce the DTB from the DTS before doing anything to produce guest_images
     guest_images.step.dependOn(&b.addInstallFileWithDir(dtb, .prefix, "linux.dtb").step);
 
-    const linux_image = b.dependency("linux", .{}).path("linux");
-    const initrd_image = b.dependency("initrd", .{}).path("rootfs.cpio.gz");
-    guest_images.step.dependOn(&b.addInstallFileWithDir(linux_image, .prefix, "linux").step);
-    guest_images.step.dependOn(&b.addInstallFileWithDir(initrd_image, .prefix, "rootfs.cpio.gz").step);
+    const linux_image_dep = b.lazyDependency(b.fmt("{s}_linux", .{ microkit_board }), .{});
+    const initrd_image_dep = b.lazyDependency(b.fmt("{s}_initrd", .{ microkit_board }), .{});
+
+    if (linux_image_dep) |linux_image| {
+        guest_images.step.dependOn(&b.addInstallFileWithDir(linux_image.path("linux"), .prefix, "linux").step);
+    }
+
+    if (initrd_image_dep) |initrd_image| {
+        guest_images.step.dependOn(&b.addInstallFileWithDir(initrd_image.path("rootfs.cpio.gz"), .prefix, "rootfs.cpio.gz").step);
+    }
 
     const kernel_image_arg = b.fmt("-DGUEST_KERNEL_IMAGE_PATH=\"{s}\"", .{ b.getInstallPath(.prefix, "linux") });
     const initrd_image_arg = b.fmt("-DGUEST_INITRD_IMAGE_PATH=\"{s}\"", .{ b.getInstallPath(.prefix, "rootfs.cpio.gz") });

@@ -6,13 +6,25 @@
         .libvmm = .{
             .path = "../../"
         },
-        .linux = .{
+        .qemu_virt_aarch64_linux = .{
             .url = "https://trustworthy.systems/Downloads/libvmm/images/85000f3f42a882e4476e57003d53f2bbec8262b0-linux.tar.gz",
-            .hash = "12208b86cf6ccbfd8c6befdfd6587ebef4d5c4d7cf125203a1dda11401d2abd8bdc2"
+            .hash = "12208b86cf6ccbfd8c6befdfd6587ebef4d5c4d7cf125203a1dda11401d2abd8bdc2",
+            .lazy = true
         },
-        .initrd = .{
+        .qemu_virt_aarch64_initrd = .{
             .url = "https://trustworthy.systems/Downloads/libvmm/images/6dcd1debf64e6d69b178cd0f46b8c4ae7cebe2a5-rootfs.cpio.gz.tar.gz",
-            .hash = "1220e95084d0ef6564e67784f6c647bc13d04d7749140bd1d39c0cd1aee84fd7fddb"
+            .hash = "1220e95084d0ef6564e67784f6c647bc13d04d7749140bd1d39c0cd1aee84fd7fddb",
+            .lazy = true
+        },
+        .odroidc4_linux = .{
+            .url = "https://trustworthy.systems/Downloads/libvmm/images/98d7ef6542f59df3e614fb62122d42216c36d874-linux.tar.gz",
+            .hash = "122050b4c1f805400804638bdbb1c793f2a1b788c7f16ba67b378fa24b906c29883a",
+            .lazy = true
+        },
+        .odroidc4_initrd = .{
+            .url = "https://trustworthy.systems/Downloads/libvmm/images/ec78fdfd660bc9358e4d7dcb73b55d88339ba19d-rootfs.cpio.gz.tar.gz",
+            .hash = "1220c27b6a85a6e202c8d0660a5d1b41c28d34cc4a5c5448bacd8fe7af05647e0ca0",
+            .lazy = true
         },
     },
     .paths = .{

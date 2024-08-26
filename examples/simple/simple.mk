@@ -17,8 +17,16 @@ vpath %.c $(LIBVMM) $(EXAMPLE_DIR)
 
 IMAGES := vmm.elf
 
-INITRD := buildroot-2022.08-rc2-be278ab1dbe811cfbd009420350c11f94b004c4e71a68cebffa72506a3989e48/rootfs.cpio.gz
-LINUX := linux-v5.18-068d92ede39bf36b416507de053468332f39dbbe75cd35ebb6564614bbef08fd/Image
+ifeq ($(strip $(MICROKIT_BOARD)), qemu_virt_aarch64)
+	LINUX := 85000f3f42a882e4476e57003d53f2bbec8262b0-linux
+	INITRD := 6dcd1debf64e6d69b178cd0f46b8c4ae7cebe2a5-rootfs.cpio.gz
+else ifeq ($(strip $(MICROKIT_BOARD)), odroidc4)
+	LINUX := 98d7ef6542f59df3e614fb62122d42216c36d874-linux
+	INITRD := 98d7ef6542f59df3e614fb62122d42216c36d874-linux.tar.gz
+else ifeq ($(strip $(MICROKIT_BOARD)), maaxboard)
+else
+$(error Unsupported MICROKIT_BOARD given)
+endif
 
 CFLAGS := \
 	  -mstrict-align \
@@ -55,11 +63,13 @@ $(IMAGES): libvmm.a
 $(IMAGE_FILE) $(REPORT_FILE): $(IMAGES) $(SYSTEM_FILE)
 	$(MICROKIT_TOOL) $(SYSTEM_FILE) --search-path $(BUILD_DIR) --board $(MICROKIT_BOARD) --config $(MICROKIT_CONFIG) -o $(IMAGE_FILE) -r $(REPORT_FILE)
 
-linux: $(LINUX)
-	curl -L https://trustworthy.systems/Downloads/libvmm/images/$@ -o linux
+${LINUX}:
+	curl -L https://trustworthy.systems/Downloads/libvmm/images/${LINUX}.tar.gz -o $@
+	tar xf $@
 
-rootfs.cpio.gz: $(INITRD)
-	curl -L https://trustworthy.systems/Downloads/libvmm/images/$@ -o rootfs.cpio.gz
+${INITRD}:
+	curl -L https://trustworthy.systems/Downloads/libvmm/images/${INITRD}.tar.gz -o $@
+	tar xf $@
 
 vm.dts: $(SYSTEM_DIR)/linux.dts $(SYSTEM_DIR)/overlay.dts
 	$(LIBVMM)/tools/dtscat $^ > $@
@@ -72,9 +82,9 @@ vmm.o: $(EXAMPLE_DIR)/vmm.c $(CHECK_FLAGS_BOARD_MD5)
 
 images.o: $(LIBVMM)/tools/package_guest_images.S $(LINUX) $(INITRD) vm.dtb
 	$(CC) -c -g3 -x assembler-with-cpp \
-					-DGUEST_KERNEL_IMAGE_PATH=\"linux\" \
+					-DGUEST_KERNEL_IMAGE_PATH=\"${LINUX}/linux\" \
 					-DGUEST_DTB_IMAGE_PATH=\"vm.dtb\" \
-					-DGUEST_INITRD_IMAGE_PATH=\"rootfs.cpio.gz\" \
+					-DGUEST_INITRD_IMAGE_PATH=\"${INITRD}/rootfs.cpio.gz\" \
 					-target $(TARGET) \
 					$(LIBVMM)/tools/package_guest_images.S -o $@
 

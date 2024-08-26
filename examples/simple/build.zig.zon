@@ -26,6 +26,16 @@
             .hash = "1220c27b6a85a6e202c8d0660a5d1b41c28d34cc4a5c5448bacd8fe7af05647e0ca0",
             .lazy = true
         },
+        .maaxboard_linux = .{
+            .url = "https://trustworthy.systems/Downloads/libvmm/images/218994f11eb8292e615daee37e417caf6929487b-linux.tar.gz",
+            .hash = "1220462ecf846727f9e273c5898d07419a7f9af99157c51a1d5bfba7f8bc2d86fe7a",
+            .lazy = true
+        },
+        .maaxboard_initrd = .{
+            .url = "https://trustworthy.systems/Downloads/libvmm/images/ce255a92feb25d09b5a0336b798523f35c2f8fe0-rootfs.cpio.gz.tar.gz",
+            .hash = "1220cac23eac00f0c1b5dbbb5fbec9839365de58ffc115628ad56ba0a5e2e9145c29",
+            .lazy = true
+        },
     },
     .paths = .{
         "build.zig",

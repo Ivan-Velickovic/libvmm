@@ -138,7 +138,7 @@ static void virtq_enqueue_used(struct virtq *virtq, uint32_t desc_head, uint32_t
 static bool virtio_net_respond(struct virtio_device *dev)
 {
     dev->data.InterruptStatus = BIT_LOW(0);
-    bool success = virq_inject(GUEST_VCPU_ID, dev->virq);
+    bool success = virq_inject(dev->virq);
     assert(success);
 
     return success;

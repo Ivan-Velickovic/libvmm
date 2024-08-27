@@ -132,8 +132,8 @@ build_simple_zig "maaxboard" "release"
 
 build_rust "debug"
 simulate_rust "debug"
-# build_rust "release"
-# simulate_rust "release"
+build_rust "release"
+simulate_rust "release"
 
 # Here there are two kinds of configuration that we need to test. There is the
 # configuration of Microkit itself for which we test debug and release. This
@@ -153,8 +153,8 @@ simulate_zig "release" "ReleaseSmall"
 
 build_virtio "qemu_virt_aarch64" "debug"
 build_virtio "qemu_virt_aarch64" "release"
-# build_virtio "odroidc4" "debug"
-# build_virtio "odroidc4" "release"
+build_virtio "odroidc4" "debug"
+build_virtio "odroidc4" "release"
 
 echo ""
 echo "CI|INFO: Passed all VMM tests"

@@ -14,9 +14,24 @@
 
 typedef void (*virq_ack_fn_t)(size_t vcpu_id, int irq, void *cookie);
 
-bool virq_controller_init(size_t boot_vcpu_id);
+/*
+ * Initialise the architecture-depedent virtual interrupt controller.
+ * On ARM, this is the virtual Generic Interrupt Controller (vGIC).
+ */
+bool virq_controller_init();
 bool virq_register(size_t vcpu_id, size_t virq_num, virq_ack_fn_t ack_fn, void *ack_data);
-bool virq_inject(size_t vcpu_id, int irq);
+
+/*
+ * Inject an IRQ into the boot virtual CPU.
+ * Note that this API requires that the IRQ has been registered (with virq_register).
+ */
+bool virq_inject(int irq);
+
+/*
+ * The same functionality as virq_inject, but will inject the virtual IRQ into a specific
+ * virtual CPU.
+ */
+bool virq_inject_vcpu(size_t vcpu_id, int irq);
 
 /*
  * These two APIs are convenient for when you want to directly passthrough an IRQ from

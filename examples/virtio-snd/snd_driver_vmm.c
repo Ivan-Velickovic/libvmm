@@ -72,17 +72,19 @@ uintptr_t sound_data_paddr;
 
 static struct virtio_console_device virtio_console;
 
-static void passthrough_device_ack(size_t vcpu_id, int irq, void *cookie) {
+static void passthrough_device_ack(size_t vcpu_id, int irq, void *cookie)
+{
     microkit_channel irq_ch = (microkit_channel)(int64_t)cookie;
     microkit_irq_ack(irq_ch);
 }
 
-static void register_passthrough_irq(int irq, microkit_channel irq_ch) {
+static void register_passthrough_irq(int irq, microkit_channel irq_ch)
+{
     LOG_VMM("Register passthrough IRQ %d (channel: 0x%lx)\n", irq, irq_ch);
     assert(irq_ch < MAX_IRQ_CH);
     passthrough_irq_map[irq_ch] = irq;
 
-    int err = virq_register(GUEST_VCPU_ID, irq, &passthrough_device_ack, (void *)(int64_t)irq_ch);
+    int err = virq_register(GUEST_BOOT_VCPU_ID, irq, &passthrough_device_ack, (void *)(int64_t)irq_ch);
     if (!err) {
         LOG_VMM_ERR("Failed to register IRQ %d\n", irq);
         return;
@@ -90,17 +92,19 @@ static void register_passthrough_irq(int irq, microkit_channel irq_ch) {
 }
 
 static bool uio_sound_fault_handler(size_t vcpu_id,
-                                  size_t offset,
-                                  size_t fsr,
-                                  seL4_UserContext *regs,
-                                  void *data) {
+                                    size_t offset,
+                                    size_t fsr,
+                                    seL4_UserContext *regs,
+                                    void *data)
+{
     microkit_notify(SND_CLIENT_CH);
     return true;
 }
 
 static void uio_sound_virq_ack(size_t vcpu_id, int irq, void *cookie) {}
 
-void init(void) {
+void init(void)
+{
     /* Initialise the VMM, the VCPU(s), and start the guest */
     LOG_VMM("starting \"%s\"\n", microkit_name);
     /* Place all the binaries in the right locations before starting the guest */
@@ -109,22 +113,22 @@ void init(void) {
     size_t initrd_size = _guest_initrd_image_end - _guest_initrd_image;
 
     uintptr_t kernel_pc = linux_setup_images(guest_ram_vaddr,
-                                      (uintptr_t) _guest_kernel_image,
-                                      kernel_size,
-                                      (uintptr_t) _guest_dtb_image,
-                                      GUEST_DTB_VADDR,
-                                      dtb_size,
-                                      (uintptr_t) _guest_initrd_image,
-                                      GUEST_INIT_RAM_DISK_VADDR,
-                                      initrd_size
-                                      );
+                                             (uintptr_t) _guest_kernel_image,
+                                             kernel_size,
+                                             (uintptr_t) _guest_dtb_image,
+                                             GUEST_DTB_VADDR,
+                                             dtb_size,
+                                             (uintptr_t) _guest_initrd_image,
+                                             GUEST_INIT_RAM_DISK_VADDR,
+                                             initrd_size
+                                            );
     if (!kernel_pc) {
         LOG_VMM_ERR("Failed to initialise guest images\n");
         return;
     }
 
     /* Initialise the virtual GIC driver */
-    bool success = virq_controller_init(GUEST_VCPU_ID);
+    bool success = virq_controller_init(GUEST_BOOT_VCPU_ID);
     if (!success) {
         LOG_VMM_ERR("Failed to initialise emulated interrupt controller\n");
         return;
@@ -137,18 +141,19 @@ void init(void) {
 
     /* Initialise our sDDF ring buffers for the serial device */
     serial_queue_handle_t serial_rxq, serial_txq;
-    serial_cli_queue_init_sys(microkit_name, &serial_rxq, serial_rx_queue, serial_rx_data, &serial_txq, serial_tx_queue, serial_tx_data);
+    serial_cli_queue_init_sys(microkit_name, &serial_rxq, serial_rx_queue, serial_rx_data, &serial_txq, serial_tx_queue,
+                              serial_tx_data);
 
     /* Initialise virtIO console device */
     success = virtio_mmio_console_init(&virtio_console,
-                                  VIRTIO_CONSOLE_BASE,
-                                  VIRTIO_CONSOLE_SIZE,
-                                  VIRTIO_CONSOLE_IRQ,
-                                  &serial_rxq, &serial_txq,
-                                  SERIAL_TX_CH);
+                                       VIRTIO_CONSOLE_BASE,
+                                       VIRTIO_CONSOLE_SIZE,
+                                       VIRTIO_CONSOLE_IRQ,
+                                       &serial_rxq, &serial_txq,
+                                       SERIAL_TX_CH);
     assert(success);
 
-    success = virq_register(GUEST_VCPU_ID, UIO_SND_IRQ, &uio_sound_virq_ack, NULL);
+    success = virq_register(GUEST_BOOT_VCPU_ID, UIO_SND_IRQ, &uio_sound_virq_ack, NULL);
     assert(success);
 
     success = fault_register_vm_exception_handler(UIO_SND_FAULT_ADDRESS,
@@ -172,10 +177,11 @@ void init(void) {
     cache_clean((uintptr_t)data_paddr, sizeof(uintptr_t));
 
     /* Finally start the guest */
-    guest_start(GUEST_VCPU_ID, kernel_pc, GUEST_DTB_VADDR, GUEST_INIT_RAM_DISK_VADDR);
+    guest_start(GUEST_BOOT_VCPU_ID, kernel_pc, GUEST_DTB_VADDR, GUEST_INIT_RAM_DISK_VADDR);
 }
 
-void notified(microkit_channel ch) {
+void notified(microkit_channel ch)
+{
     bool success;
 
     switch (ch) {
@@ -185,16 +191,16 @@ void notified(microkit_channel ch) {
         virtio_console_handle_rx(&virtio_console);
         break;
     case SND_CLIENT_CH:
-        success = virq_inject(GUEST_VCPU_ID, UIO_SND_IRQ);
+        success = virq_inject(UIO_SND_IRQ);
         if (!success) {
-            LOG_VMM_ERR("IRQ %d dropped on vCPU %d\n", UIO_SND_IRQ, GUEST_VCPU_ID);
+            LOG_VMM_ERR("IRQ %d dropped\n", UIO_SND_IRQ);
         }
         break;
     default:
         if (passthrough_irq_map[ch]) {
-            success = virq_inject(GUEST_VCPU_ID, passthrough_irq_map[ch]);
+            success = virq_inject(passthrough_irq_map[ch]);
             if (!success) {
-                LOG_VMM_ERR("IRQ %d dropped on vCPU %d\n", passthrough_irq_map[ch], GUEST_VCPU_ID);
+                LOG_VMM_ERR("IRQ %d dropped\n", passthrough_irq_map[ch]);
             }
         } else {
             printf("Unexpected channel, ch: 0x%lx\n", ch);
@@ -202,7 +208,8 @@ void notified(microkit_channel ch) {
     }
 }
 
-seL4_Bool fault(microkit_child child, microkit_msginfo msginfo, microkit_msginfo *reply_msginfo) {
+seL4_Bool fault(microkit_child child, microkit_msginfo msginfo, microkit_msginfo *reply_msginfo)
+{
     bool success = fault_handle(child, msginfo);
     if (success) {
         /* Now that we have handled the fault successfully, we reply to it so

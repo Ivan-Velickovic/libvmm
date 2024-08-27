@@ -5,6 +5,7 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+#include <libvmm/vcpu.h>
 #include <libvmm/util/util.h>
 #include <libvmm/arch/aarch64/fault.h>
 
@@ -246,7 +247,8 @@ static void vgic_dist_clr_pending_irq(struct gic_dist_map *dist, size_t vcpu_id,
     // @ivanv
 }
 
-static bool vgic_dist_reg_read(size_t vcpu_id, vgic_t *vgic, uint64_t offset, uint64_t fsr, seL4_UserContext *regs)
+static bool vgic_handle_fault_dist_read(size_t vcpu_id, vgic_t *vgic, uint64_t offset, uint64_t fsr,
+                                        seL4_UserContext *regs)
 {
     struct gic_dist_map *gic_dist = vgic_get_dist(vgic->registers);
     uint32_t reg = 0;
@@ -358,7 +360,8 @@ static bool vgic_dist_reg_read(size_t vcpu_id, vgic_t *vgic, uint64_t offset, ui
     case RANGE32(0xDE8, 0xEFC):
         /* Reserved [0xDE8 - 0xE00) */
         /* GIC_DIST_NSACR [0xE00 - 0xF00) - Not supported */
-        break; case RANGE32(GIC_DIST_SGIR, GIC_DIST_SGIR):
+        break;
+    case RANGE32(GIC_DIST_SGIR, GIC_DIST_SGIR):
         reg = gic_dist->sgir;
         break;
     case RANGE32(0xF04, 0xF0C):
@@ -413,7 +416,8 @@ static inline void emulate_reg_write_access(seL4_UserContext *regs, uint64_t add
     *reg = fault_emulate(regs, *reg, addr, fsr, fault_get_data(regs, fsr));
 }
 
-static bool vgic_dist_reg_write(size_t vcpu_id, vgic_t *vgic, uint64_t offset, uint64_t fsr, seL4_UserContext *regs)
+static bool vgic_handle_fault_dist_write(size_t vcpu_id, vgic_t *vgic, uint64_t offset, uint64_t fsr,
+                                         seL4_UserContext *regs)
 {
     bool success = true;
     struct gic_dist_map *gic_dist = vgic_get_dist(vgic->registers);
@@ -494,8 +498,8 @@ static bool vgic_dist_reg_write(size_t vcpu_id, vgic_t *vgic, uint64_t offset, u
             irq = CTZ(data);
             data &= ~(1U << irq);
             irq += (offset - GIC_DIST_ISPENDR0) * 8;
-            // @ivanv: should be checking this and other calls like it succeed
-            vgic_dist_set_pending_irq(vgic, vcpu_id, irq);
+            success = vgic_dist_set_pending_irq(vgic, vcpu_id, irq);
+            assert(success);
         }
         break;
     case RANGE32(GIC_DIST_ICPENDR0, GIC_DIST_ICPENDRN):
@@ -571,11 +575,15 @@ static bool vgic_dist_reg_write(size_t vcpu_id, vgic_t *vgic, uint64_t offset, u
             LOG_VMM_ERR("Unknown SGIR Target List Filter mode");
             goto ignore_fault;
         }
-        // @ivanv: Here we're making the assumption that there's only one vCPU, and
-        // we're also blindly injectnig the given IRQ to that vCPU.
-        // @ivanv: come back to this, do we have two writes to the TCB registers?
-        success = vgic_inject_irq(vcpu_id, virq);
-        assert(success);
+        for (int i = 0; i < GUEST_NUM_VCPUS; i++) {
+            if ((1 << i) & target_list && vcpu_is_on(i)) {
+                success = vgic_inject_irq(i, virq);
+                assert(success);
+                if (!success) {
+                    return false;
+                }
+            }
+        }
         break;
     case RANGE32(0xF04, 0xF0C):
         /* Reserved */
@@ -594,7 +602,7 @@ static bool vgic_dist_reg_write(size_t vcpu_id, vgic_t *vgic, uint64_t offset, u
 #if defined(GIC_V3)
     // @ivanv: explain GICv3 specific stuff, and also don't use the hardcoded valuees
     case RANGE32(0x6100, 0x7F00):
-    // @ivanv revisit
+        // @ivanv revisit
         // data = fault_get_data(fault);
         // ZF_LOGF_IF(data, "bad dist: 0x%x 0x%x", offset, data);
         break;
@@ -611,4 +619,3 @@ ignore_fault:
 
     return success;
 }
-

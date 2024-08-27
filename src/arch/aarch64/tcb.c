@@ -9,7 +9,8 @@
 #include <libvmm/tcb.h>
 #include <libvmm/util/util.h>
 
-void tcb_print_regs(size_t vcpu_id) {
+void tcb_print_regs(size_t vcpu_id)
+{
     /*
      * While we are potentially doing an extra system call in order to read the
      * TCB registers (as the VMM may have already read the TCB registers before

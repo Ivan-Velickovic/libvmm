@@ -162,7 +162,7 @@ static bool virtio_console_handle_tx(struct virtio_device *dev)
      * available data. In this case we do not set the IRQ status. */
     if (transferred) {
         dev->data.InterruptStatus = BIT_LOW(0);
-        bool success = virq_inject(GUEST_VCPU_ID, dev->virq);
+        bool success = virq_inject(dev->virq);
         assert(success);
 
         if (serial_require_producer_signal(&console->txq)) {
@@ -221,7 +221,7 @@ bool virtio_console_handle_rx(struct virtio_console_device *console)
      * available data. In this case we do not set the IRQ status. */
     if (transferred) {
         console->virtio_device.data.InterruptStatus = BIT_LOW(0);
-        bool success = virq_inject(GUEST_VCPU_ID, console->virtio_device.virq);
+        bool success = virq_inject(console->virtio_device.virq);
         assert(success);
 
         return success;

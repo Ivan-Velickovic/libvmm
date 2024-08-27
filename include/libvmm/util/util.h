@@ -12,9 +12,13 @@
 #include <stddef.h>
 #include <libvmm/util/printf.h>
 
-// @ivanv: these are here for convience, should not be here though
-#define GUEST_VCPU_ID 0
+#define GUEST_BOOT_VCPU_ID 0
+
+#ifndef GUEST_NUM_VCPUS
 #define GUEST_NUM_VCPUS 1
+#endif
+
+#define PAGE_SIZE_MIN 0x1000
 
 // @ivanv: if we keep using this, make sure that we have a static assert
 // that sizeof seL4_UserContext is 0x24

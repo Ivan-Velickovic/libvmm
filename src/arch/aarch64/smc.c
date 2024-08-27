@@ -63,30 +63,48 @@ inline void smc_set_return_value(seL4_UserContext *u, uint64_t val)
 uint64_t smc_get_arg(seL4_UserContext *u, uint64_t arg)
 {
     switch (arg) {
-        case 1: return u->x1;
-        case 2: return u->x2;
-        case 3: return u->x3;
-        case 4: return u->x4;
-        case 5: return u->x5;
-        case 6: return u->x6;
-        default:
-            LOG_VMM_ERR("trying to get SMC arg: 0x%lx, SMC only has 6 argument registers\n", arg);
-            // @ivanv: come back to this
-            return 0;
+    case 1:
+        return u->x1;
+    case 2:
+        return u->x2;
+    case 3:
+        return u->x3;
+    case 4:
+        return u->x4;
+    case 5:
+        return u->x5;
+    case 6:
+        return u->x6;
+    default:
+        LOG_VMM_ERR("trying to get SMC arg: 0x%lx, SMC only has 6 argument registers\n", arg);
+        // @ivanv: come back to this
+        return 0;
     }
 }
 
 static void smc_set_arg(seL4_UserContext *u, size_t arg, size_t val)
 {
     switch (arg) {
-        case 1: u->x1 = val; break;
-        case 2: u->x2 = val; break;
-        case 3: u->x3 = val; break;
-        case 4: u->x4 = val; break;
-        case 5: u->x5 = val; break;
-        case 6: u->x6 = val; break;
-        default:
-            LOG_VMM_ERR("trying to set SMC arg: 0x%lx, with val: 0x%lx, SMC only has 6 argument registers\n", arg, val);
+    case 1:
+        u->x1 = val;
+        break;
+    case 2:
+        u->x2 = val;
+        break;
+    case 3:
+        u->x3 = val;
+        break;
+    case 4:
+        u->x4 = val;
+        break;
+    case 5:
+        u->x5 = val;
+        break;
+    case 6:
+        u->x6 = val;
+        break;
+    default:
+        LOG_VMM_ERR("trying to set SMC arg: 0x%lx, with val: 0x%lx, SMC only has 6 argument registers\n", arg, val);
     }
 }
 
@@ -103,15 +121,15 @@ bool handle_smc(size_t vcpu_id, uint32_t hsr)
     smc_call_id_t service = smc_get_call(regs.x0);
 
     switch (service) {
-        case SMC_CALL_STD_SERVICE:
-            if (fn_number < PSCI_MAX) {
-                return handle_psci(vcpu_id, &regs, fn_number, hsr);
-            }
-            LOG_VMM_ERR("Unhandled SMC: standard service call %lu\n", fn_number);
-            break;
-        default:
-            LOG_VMM_ERR("Unhandled SMC: unknown value service: 0x%lx, function number: 0x%lx\n", service, fn_number);
-            break;
+    case SMC_CALL_STD_SERVICE:
+        if (fn_number < PSCI_MAX) {
+            return handle_psci(vcpu_id, &regs, fn_number, hsr);
+        }
+        LOG_VMM_ERR("Unhandled SMC: standard service call %lu\n", fn_number);
+        break;
+    default:
+        LOG_VMM_ERR("Unhandled SMC: unknown value service: 0x%lx, function number: 0x%lx\n", service, fn_number);
+        break;
     }
 
     return false;

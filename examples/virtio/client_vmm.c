@@ -41,7 +41,6 @@ extern char _guest_initrd_image_end[];
 /* Microkit will set this variable to the start of the guest RAM memory region. */
 uintptr_t guest_ram_vaddr;
 
-
 /* Virtio Console */
 #define SERIAL_VIRT_TX_CH 1
 #define SERIAL_VIRT_RX_CH 2
@@ -103,7 +102,7 @@ void init(void)
     }
 
     /* Initialise the virtual GIC driver */
-    bool success = virq_controller_init(GUEST_VCPU_ID);
+    bool success = virq_controller_init();
     if (!success) {
         LOG_VMM_ERR("Failed to initialise emulated interrupt controller\n");
         return;
@@ -111,15 +110,16 @@ void init(void)
 
     /* Initialise our sDDF ring buffers for the serial device */
     serial_queue_handle_t serial_rxq, serial_txq;
-    serial_cli_queue_init_sys(microkit_name, &serial_rxq, serial_rx_queue, serial_rx_data, &serial_txq, serial_tx_queue, serial_tx_data);
+    serial_cli_queue_init_sys(microkit_name, &serial_rxq, serial_rx_queue, serial_rx_data, &serial_txq, serial_tx_queue,
+                              serial_tx_data);
 
     /* Initialise virtIO console device */
     success = virtio_mmio_console_init(&virtio_console,
-                                  VIRTIO_CONSOLE_BASE,
-                                  VIRTIO_CONSOLE_SIZE,
-                                  VIRTIO_CONSOLE_IRQ,
-                                  &serial_rxq, &serial_txq,
-                                  SERIAL_VIRT_TX_CH);
+                                       VIRTIO_CONSOLE_BASE,
+                                       VIRTIO_CONSOLE_SIZE,
+                                       VIRTIO_CONSOLE_IRQ,
+                                       &serial_rxq, &serial_txq,
+                                       SERIAL_VIRT_TX_CH);
 
     /* virtIO block */
     /* Initialise our sDDF queues for the block device */
@@ -131,16 +131,16 @@ void init(void)
 
     /* Initialise virtIO block device */
     success = virtio_mmio_blk_init(&virtio_blk,
-                        VIRTIO_BLK_BASE, VIRTIO_BLK_SIZE, VIRTIO_BLK_IRQ,
-                        blk_data,
-                        BLK_DATA_SIZE,
-                        storage_info,
-                        &blk_queue_h,
-                        BLK_CH);
+                                   VIRTIO_BLK_BASE, VIRTIO_BLK_SIZE, VIRTIO_BLK_IRQ,
+                                   blk_data,
+                                   BLK_DATA_SIZE,
+                                   storage_info,
+                                   &blk_queue_h,
+                                   BLK_CH);
     assert(success);
 
     /* Finally start the guest */
-    guest_start(GUEST_VCPU_ID, kernel_pc, GUEST_DTB_VADDR, GUEST_INIT_RAM_DISK_VADDR);
+    guest_start(kernel_pc, GUEST_DTB_VADDR, GUEST_INIT_RAM_DISK_VADDR);
 }
 
 void notified(microkit_channel ch)
@@ -161,7 +161,8 @@ void notified(microkit_channel ch)
     }
 }
 
-seL4_Bool fault(microkit_child child, microkit_msginfo msginfo, microkit_msginfo *reply_msginfo) {
+seL4_Bool fault(microkit_child child, microkit_msginfo msginfo, microkit_msginfo *reply_msginfo)
+{
     bool success = fault_handle(child, msginfo);
     if (success) {
         /* Now that we have handled the fault successfully, we reply to it so

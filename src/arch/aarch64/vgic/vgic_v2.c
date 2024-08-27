@@ -59,7 +59,7 @@ static void vgic_dist_reset(struct gic_dist_map *gic_dist)
     gic_dist->typer = 0x0000fce7; /* RO */
     gic_dist->iidr = 0x0200043b; /* RO */
 
-    for (int i = 0; i < CONFIG_MAX_NUM_NODES; i++) {
+    for (int i = 0; i < GUEST_NUM_VCPUS; i++) {
         gic_dist->enable_set0[i] = 0x0000ffff; /* 16bit RO */
         gic_dist->enable_clr0[i] = 0x0000ffff; /* 16bit RO */
     }
@@ -83,7 +83,7 @@ static void vgic_dist_reset(struct gic_dist_map *gic_dist)
     gic_dist->config[15]      = 0x55555555;
 
     /* Configure per-processor SGI/PPI target registers */
-    for (int i = 0; i < CONFIG_MAX_NUM_NODES; i++) {
+    for (int i = 0; i < GUEST_NUM_VCPUS; i++) {
         for (int j = 0; j < ARRAY_SIZE(gic_dist->targets0[i]); j++) {
             for (int irq = 0; irq < sizeof(uint32_t); irq++) {
                 gic_dist->targets0[i][j] |= ((1 << i) << (irq * 8));
@@ -109,23 +109,24 @@ static void vgic_dist_reset(struct gic_dist_map *gic_dist)
 void vgic_init()
 {
     memset(&vgic, 0, sizeof(vgic_t));
-    for (int i = 0; i < NUM_SLOTS_SPI_VIRQ; i++) {
-        vgic.vspis[i].virq = VIRQ_INVALID;
+
+    for (int vcpu = 0; vcpu < GUEST_NUM_VCPUS; vcpu++) {
+        for (int i = 0; i < NUM_VCPU_LOCAL_VIRQS; i++) {
+            vgic.vgic_vcpu[vcpu].local_virqs[i].virq = VIRQ_INVALID;
+        }
+        for (int i = 0; i < NUM_LIST_REGS; i++) {
+            vgic.vgic_vcpu[vcpu].lr_shadow[i].virq = VIRQ_INVALID;
+        }
+        for (int i = 0; i < MAX_IRQ_QUEUE_LEN; i++) {
+            vgic.vgic_vcpu[vcpu].irq_queue.irqs[i] = NULL;
+        }
+        for (int i = 0; i < NUM_SLOTS_SPI_VIRQ; i++) {
+            vgic.vspis[i].virq = VIRQ_INVALID;
+            vgic.vspis[i].ack_fn = NULL;
+            vgic.vspis[i].ack_data = NULL;
+        }
     }
-    for (int i = 0; i < NUM_VCPU_LOCAL_VIRQS; i++) {
-        vgic.vgic_vcpu[GUEST_VCPU_ID].local_virqs[i].virq = VIRQ_INVALID;
-    }
-    for (int i = 0; i < NUM_LIST_REGS; i++) {
-        vgic.vgic_vcpu[GUEST_VCPU_ID].lr_shadow[i].virq = VIRQ_INVALID;
-    }
-    for (int i = 0; i < MAX_IRQ_QUEUE_LEN; i++) {
-        vgic.vgic_vcpu[GUEST_VCPU_ID].irq_queue.irqs[i] = NULL;
-    }
-    for (int i = 0; i < NUM_SLOTS_SPI_VIRQ; i++) {
-        vgic.vspis[i].virq = VIRQ_INVALID;
-        vgic.vspis[i].ack_fn = NULL;
-        vgic.vspis[i].ack_data = NULL;
-    }
+
     vgic.registers = &dist;
     memset(vgic.registers, 0, sizeof(struct gic_dist_map));
     vgic_dist_reset(vgic_get_dist(vgic.registers));

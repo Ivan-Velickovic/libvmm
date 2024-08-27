@@ -53,8 +53,11 @@
 #endif
 
 void vgic_init();
-bool fault_handle_vgic_maintenance(size_t vcpu_id);
-bool handle_vgic_dist_fault(size_t vcpu_id, size_t offset, size_t fsr, seL4_UserContext *regs, void *data);
-bool handle_vgic_redist_fault(size_t vcpu_id, size_t offset, size_t fsr, seL4_UserContext *regs, void *data);
+
+bool vgic_handle_fault_maintenance(size_t vcpu_id);
+
+bool vgic_handle_fault_dist(size_t vcpu_id, size_t offset, size_t fsr, seL4_UserContext *regs, void *data);
+bool vgic_handle_fault_redist(size_t vcpu_id, size_t offset, size_t fsr, seL4_UserContext *regs, void *data);
+
 bool vgic_register_irq(size_t vcpu_id, int virq_num, virq_ack_fn_t ack_fn, void *ack_data);
 bool vgic_inject_irq(size_t vcpu_id, int irq);

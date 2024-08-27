@@ -96,7 +96,7 @@ export fn init() callconv(.C) void {
         return;
     }
     // Initialise the virtual interrupt controller
-    if (!c.virq_controller_init(GUEST_BOOT_VCPU_ID)) {
+    if (!c.virq_controller_init()) {
         log.err("Failed to initialise virtual interrupt controller\n", .{});
         return;
     }
@@ -109,7 +109,7 @@ export fn init() callconv(.C) void {
     // handle, we ack it here.
     microkit.microkit_irq_ack(SERIAL_IRQ_CH);
     // Finally we can start the guest
-    if (!c.guest_start(GUEST_BOOT_VCPU_ID, kernel_pc, GUEST_DTB_VADDR, GUEST_INIT_RAM_DISK_VADDR)) {
+    if (!c.guest_start(kernel_pc, GUEST_DTB_VADDR, GUEST_INIT_RAM_DISK_VADDR)) {
         log.err("Failed to start guest\n", .{});
         return;
     }
@@ -118,9 +118,9 @@ export fn init() callconv(.C) void {
 export fn notified(ch: microkit.microkit_channel) callconv(.C) void {
     switch (ch) {
         SERIAL_IRQ_CH => {
-            const success = c.virq_inject(GUEST_BOOT_VCPU_ID, SERIAL_IRQ);
+            const success = c.virq_inject(SERIAL_IRQ);
             if (!success) {
-                log.err("IRQ {x} dropped on vCPU {x}\n", .{ SERIAL_IRQ, GUEST_BOOT_VCPU_ID });
+                log.err("IRQ {x} dropped\n", .{ SERIAL_IRQ });
             }
         },
         else => log.err("Unexpected channel, ch: {x}\n", .{ ch })

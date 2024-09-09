@@ -1,9 +1,11 @@
 #include <libvmm/virq.h>
 #include <libvmm/util/util.h>
 
+#define PLIC_ADDR 0xc000000
+
 bool virq_controller_init(size_t boot_vcpu_id) {
     // @riscv
-    return false;
+    return true;
 }
 
 bool virq_inject(size_t vcpu_id, int irq) {

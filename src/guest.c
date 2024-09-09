@@ -22,7 +22,8 @@ bool guest_start(size_t boot_vcpu_id, uintptr_t kernel_pc, uintptr_t dtb, uintpt
     regs.spsr = 5; // PMODE_EL1h
     regs.pc = kernel_pc;
 #elif defined(CONFIG_ARCH_RISCV)
-    regs.a0 = dtb;
+    regs.a0 = boot_vcpu_id;
+    regs.a1 = dtb;
     regs.pc = kernel_pc;
 #else
 #error "Unsupported guest architecture"
@@ -32,7 +33,7 @@ bool guest_start(size_t boot_vcpu_id, uintptr_t kernel_pc, uintptr_t dtb, uintpt
         BASE_VM_TCB_CAP + boot_vcpu_id,
         false, // We'll explcitly start the guest below rather than in this call
         0, // No flags
-        4, // Writing to x0, pc, and spsr. Due to the ordering of seL4_UserContext the count must be 4.
+        sizeof(seL4_UserContext) / sizeof(seL4_Word), // Writing to x0, pc, and spsr. Due to the ordering of seL4_UserContext the count must be 4.
         &regs
     );
     assert(err == seL4_NoError);

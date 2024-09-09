@@ -7,8 +7,10 @@
 	model = "riscv-virtio,qemu";
 
 	chosen {
-		bootargs = "console=ttyS0";
+		bootargs = "console=ttyS0 loglevel=8 earlycon=ns16550a,0x10000000";
 		stdout-path = "/uart@10000000";
+        linux,initrd-start = <0x8c000000>;
+        linux,initrd-end = <0x8d000000>;
 	};
 
 	uart@10000000 {
@@ -45,7 +47,7 @@
 
 	memory@80000000 {
 		device_type = "memory";
-		reg = <0x0 0x80000000 0x0 0x8000000>;
+		reg = <0x0 0x80000000 0x0 0x10000000>;
 	};
 
 	soc {

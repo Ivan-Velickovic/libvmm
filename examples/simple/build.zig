@@ -137,6 +137,8 @@ pub fn build(b: *std.Build) void {
     const dts_cat_cmd = b.addSystemCommand(&[_][]const u8{
         "sh", "../../tools/dtscat", base_dts_path, overlay
     });
+    dts_cat_cmd.addFileInput(b.path(base_dts_path));
+    dts_cat_cmd.addFileInput(b.path(overlay));
     const final_dts = dts_cat_cmd.captureStdOut();
 
     // For actually compiling the DTS into a DTB

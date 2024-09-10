@@ -12,3 +12,5 @@
 
 /* Fault-handling functions */
 bool fault_handle(size_t vcpu_id, microkit_msginfo msginfo);
+
+void fault_decode_instruction(size_t vcpu_id, seL4_UserContext *regs, seL4_Word ip);

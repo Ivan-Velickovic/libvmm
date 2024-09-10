@@ -1,0 +1,23 @@
+/*
+ * Copyright 2024, UNSW
+ *
+ * SPDX-License-Identifier: BSD-2-Clause
+ */
+/ {
+    /* Need to specify how much RAM the guest will have */
+    memory@80000000 {
+        device_type = "memory";
+        reg = <0x0 0x80000000 0x0 0x10000000>;
+    };
+
+    flash@20000000 {
+        status = "disabled";
+    };
+
+    chosen {
+        stdout-path = "/uart@10000000";
+        bootargs = "console=ttyS0 loglevel=8 earlycon=ns16550a,0x10000000";
+        linux,initrd-start = <0x8c000000>;
+        linux,initrd-end = <0x8d000000>;
+    };
+};

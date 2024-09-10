@@ -40,6 +40,7 @@ const src_riscv64 = [_][]const u8{
     "src/arch/riscv/tcb.c",
     "src/arch/riscv/vcpu.c",
     "src/arch/riscv/virq.c",
+    "src/arch/riscv/plic.c",
 };
 
 pub fn build(b: *std.Build) void {

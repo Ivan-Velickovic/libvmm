@@ -26,6 +26,10 @@
 #define SBI_SPEC_MINOR_VERSION 0
 #define SBI_SPEC_VERSION (SBI_SPEC_MAJOR_VERSION << 24) | (SBI_SPEC_MINOR_VERSION)
 
+#define MACHINE_ARCH_ID 0
+#define MACHINE_IMPL_ID 0
+#define MACHINE_VENDOR_ID 0
+
 /* What SBI extensions we actually support */
 enum sbi_extensions {
     SBI_EXTENSION_BASE = 0x10,
@@ -167,10 +171,10 @@ void fault_decode_instruction(size_t vcpu_id, seL4_UserContext *regs, seL4_Word 
 char *fault_to_string(seL4_Word fault_label) {
     // TODO
     switch (fault_label) {
-    case seL4_Fault_VMFault: return "virtual memory";
+    case seL4_Fault_VMFault: return "virtual memory exception";
     case seL4_Fault_UnknownSyscall: return "unknown syscall";
     case seL4_Fault_UserException: return "user exception";
-    case seL4_Fault_VCPUFault: return "VCPU";
+    case seL4_Fault_VCPUFault: return "vCPU";
     default: return "unknown fault";
     }
 }
@@ -219,10 +223,16 @@ static bool fault_handle_sbi_base(size_t vcpu_id, seL4_Word sbi_fid, seL4_UserCo
         regs->a0 = SBI_ERR_NOT_SUPPORTED;
         return true;
     case SBI_BASE_GET_MACHINE_VENDOR_ID:
+        regs->a0 = SBI_SUCCESS;
+        regs->a1 = MACHINE_VENDOR_ID;
+        return true;
     case SBI_BASE_GET_MACHINE_ARCH_ID:
+        regs->a0 = SBI_SUCCESS;
+        regs->a1 = MACHINE_ARCH_ID;
+        return true;
     case SBI_BASE_GET_MACHINE_IMPL_ID:
-        regs->a0 = SBI_ERR_NOT_SUPPORTED;
-        // regs->a1 = 0;
+        regs->a0 = SBI_SUCCESS;
+        regs->a1 = MACHINE_IMPL_ID;
         return true;
     case SBI_BASE_PROBE_EXTENSION_ID: {
         seL4_Word probe_eid = regs->a0;
@@ -254,7 +264,7 @@ static bool fault_handle_sbi(size_t vcpu_id, seL4_UserContext *regs) {
     seL4_Word sbi_eid = regs->a7;
     /* SBI function ID for the given extension */
     seL4_Word sbi_fid = regs->a6;
-    // LOG_VMM("SBI handle EID 0x%lx, FID: 0x%lx\n", sbi_eid, sbi_fid);
+    LOG_VMM("SBI handle EID 0x%lx, FID: 0x%lx\n", sbi_eid, sbi_fid);
     switch (sbi_eid) {
     case SBI_EXTENSION_BASE:
         // TODO: error handling
@@ -285,6 +295,7 @@ bool fault_handle(size_t vcpu_id, microkit_msginfo msginfo) {
     seL4_UserContext regs;
     seL4_TCB_ReadRegisters(BASE_VM_TCB_CAP + vcpu_id, false, 0, sizeof(seL4_UserContext) / sizeof(seL4_Word), &regs);
     size_t label = microkit_msginfo_get_label(msginfo);
+    LOG_VMM("handling fault '%s'\n", fault_to_string(label));
     bool success = false;
     switch (label) {
         case seL4_Fault_VMFault: {
@@ -303,12 +314,6 @@ bool fault_handle(size_t vcpu_id, microkit_msginfo msginfo) {
                 return fault_handle_sbi(vcpu_id, &regs);
             } else if (cause == TRAP_VIRTUAL_INSTRUCTION) {
                 uint32_t data = seL4_GetMR(seL4_VCPUFault_Data);
-                // TODO: what's going on with this !
-                if (data == 0x25200f) {
-                    regs.pc += 4;
-                    seL4_TCB_WriteRegisters(BASE_VM_TCB_CAP + vcpu_id, false, 0, sizeof(seL4_UserContext) / sizeof(seL4_Word), &regs);
-                    return true;
-                }
                 // if (data == WFI_INST) {
                     // TODO: handle WFI properly
                     // regs.pc += 4;

@@ -123,6 +123,7 @@ void init(void) {
         return;
     }
     success = virq_register(GUEST_VCPU_ID, SERIAL_IRQ, &serial_ack, NULL);
+    assert(success);
     /* Just in case there is already an interrupt available to handle, we ack it here. */
     microkit_irq_ack(SERIAL_IRQ_CH);
     /* Finally start the guest */
@@ -132,10 +133,10 @@ void init(void) {
 void notified(microkit_channel ch) {
     switch (ch) {
         case SERIAL_IRQ_CH: {
-            bool success = virq_inject(GUEST_VCPU_ID, SERIAL_IRQ);
-            if (!success) {
-                LOG_VMM_ERR("IRQ %d dropped on vCPU %d\n", SERIAL_IRQ, GUEST_VCPU_ID);
-            }
+            // bool success = virq_inject(GUEST_VCPU_ID, SERIAL_IRQ);
+            // if (!success) {
+            //     LOG_VMM_ERR("IRQ %d dropped on vCPU %d\n", SERIAL_IRQ, GUEST_VCPU_ID);
+            // }
             break;
         }
         default:

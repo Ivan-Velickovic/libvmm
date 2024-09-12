@@ -14,10 +14,52 @@
         status = "disabled";
     };
 
+    soc {
+        rtc@101000 {
+            status = "disabled";
+        };
+
+        pci@30000000 {
+            status = "disabled";
+        };
+
+        virtio_mmio@10008000 {
+            status = "disabled";
+        };
+
+        virtio_mmio@10007000 {
+            status = "disabled";
+        };
+
+        virtio_mmio@10006000 {
+            status = "disabled";
+        };
+
+        virtio_mmio@10005000 {
+            status = "disabled";
+        };
+
+        virtio_mmio@10004000 {
+            status = "disabled";
+        };
+
+        virtio_mmio@10003000 {
+            status = "disabled";
+        };
+
+        virtio_mmio@10002000 {
+            status = "disabled";
+        };
+
+        virtio_mmio@10001000 {
+            status = "disabled";
+        };
+    };
+
     chosen {
         stdout-path = "/uart@10000000";
-        bootargs = "console=ttyS0 loglevel=8 earlycon=ns16550a,0x10000000";
+        bootargs = "console=ttyS0 loglevel=8 earlycon=ns16550a,0x10000000 no4lvl";
         linux,initrd-start = <0x8c000000>;
-        linux,initrd-end = <0x8d000000>;
+        linux,initrd-end = <0x8e000000>;
     };
 };

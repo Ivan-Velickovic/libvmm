@@ -15,12 +15,6 @@
 // TODO: why does our impl id and version id come up as this?
 /* [    0.000000] SBI implementation ID=0xfffffffffffffdf4 Version=0xfffffffffffffdf4 */
 
-#define PLIC_ADDR 0xc000000
-#define PLIC_SIZE 0x4000000
-
-#define OP_CODE_LOAD 0b0000011
-#define OP_CODE_STORE 0b0100011
-
 /* We support version 2.0 of SBI */
 #define SBI_SPEC_MAJOR_VERSION 2
 #define SBI_SPEC_MINOR_VERSION 0
@@ -31,6 +25,7 @@
 #define MACHINE_VENDOR_ID 0
 
 /* What SBI extensions we actually support */
+// TODO: support system suspend
 enum sbi_extensions {
     SBI_EXTENSION_BASE = 0x10,
     SBI_EXTENSION_TIMER = 0x54494d45,
@@ -98,17 +93,24 @@ static uint64_t pt[512];
 
 static seL4_Word guest_virtual_physical(seL4_Word addr, size_t vcpu_id) {
     size_t level = 2;
-    uint64_t *ppt = &pt[0];
+    // uint64_t *ppt = &pt;
     for (int i = 0; i < PT_SIZE; i++) {
-        ppt[i] = 0;
+        pt[i] = 0;
     }
 
     seL4_Word satp = 0;
     seL4_RISCV_VCPU_ReadRegs_t res = seL4_RISCV_VCPU_ReadRegs(BASE_VCPU_CAP + vcpu_id, seL4_VCPUReg_SATP);
     assert(!res.error);
     satp = res.value;
-    LOG_VMM("satp: 0x%lx\n", satp);
-    assert((satp >> 60) == SV39_MODE);
+    // LOG_VMM("satp: 0x%lx\n", satp);
+    uint8_t mode = satp >> 60;
+    // LOG_VMM("mode is 0x%lx\n", mode);
+
+    assert(mode == SV39_MODE);
+    // switch mode {
+    // case SV39_MODE:
+    // case 
+    // }
 
     seL4_Word ppn = GET_PPN(satp);
     seL4_Word gpa = ppn << PPN_SHIFT;
@@ -116,30 +118,26 @@ static seL4_Word guest_virtual_physical(seL4_Word addr, size_t vcpu_id) {
 
     /* Read the guest's page table */
     while (level > 0) {
+        // LOG_VMM("copy in %lx level %d\n", gpa, level);
         assert(gpa != 0);
         for (int i = 0; i < PT_SIZE; i++) {
-            ppt[i] = *(uint64_t *)(gpa + sizeof(uint64_t) * i);
+            pt[i] = *(uint64_t *)(gpa + 8 * i);
         }
         int vpn = GET_VPN(addr, level);
-        pte = ppt[vpn];
-        // DPW("index %d pte %lx gpa %lx level %d\n", vpn, pte, gpa, level);
+        pte = pt[vpn];
         if (pte & PTE_V && (pte & PTE_R || pte & PTE_X)) {
             /* we reach a leaf page */
             if (level == 2) {
                 /* 1 GiB page */
-                // DPW("pa  %lx %lx level %d\n", PTE_GET_1G(pte), PTE_GET_1G(pte) << 30, level);
-                return (PTE_GET_1G(pte) << 30)  | (addr & 0x3fffffff);
+                return (PTE_GET_1G(pte) << 30)  | (addr & (BIT(30) - 1));
             }
             if (level == 1) {
                 /* 2 MiB page */
-                // DPW("pa %lx %lx level %d\n", PTE_GET_2M(pte), PTE_GET_2M(pte) << 21, level);
-                // DPW("return %lx\n", (PTE_GET_2M(pte) << 21) | (va & (BIT(22) - 1)));
-                return (PTE_GET_2M(pte) << 21) | (addr & (BIT(22) - 1));
-
+                return (PTE_GET_2M(pte) << 21) | (addr & (BIT(21) - 1));
             }
             if (level == 0) {
                 /* 4 KiB page */
-                return ((PTE_GET_4K(pte) << 12) | (addr & (BIT(13) - 1)));
+                return ((PTE_GET_4K(pte) << 12) | (addr & (BIT(12) - 1)));
             }
 
         }
@@ -151,21 +149,81 @@ static seL4_Word guest_virtual_physical(seL4_Word addr, size_t vcpu_id) {
     return 0;
 }
 
-void fault_decode_instruction(size_t vcpu_id, seL4_UserContext *regs, seL4_Word ip) {
+extern uintptr_t guest_ram_vaddr;
+
+#define FUNCT3_CSW 0b110
+#define FUNCT3_CLW 0b010
+
+struct fault_instruction fault_decode_instruction(size_t vcpu_id, seL4_UserContext *regs, seL4_Word ip) {
+    LOG_VMM("decoding at ip 0x%lx\n", ip);
     seL4_Word guest_physical = guest_virtual_physical(ip, vcpu_id);
-    uint32_t instruction = *(uint32_t *)guest_physical;
+    assert(guest_physical >= guest_ram_vaddr && guest_physical <= guest_ram_vaddr + 0x10000000);
+    LOG_VMM("guest_physical: 0x%lx\n", guest_physical);
+    /*
+     * For guest OSes that use the RISC-V 'C' extension we must read the instruction 16-bits at
+     * a time, in order to avoid UB since it is valid for *all* instructions, compressed or not,
+     * to be aligned to 16-bits.
+     */
+    uint16_t instruction_lo = *((uint16_t *)guest_physical);
+    uint16_t instruction_hi = *(uint16_t *)(guest_physical + 16);
+    uint32_t instruction = ((uint32_t)instruction_hi << 16) | instruction_lo;
+    LOG_VMM("guest_physical: 0x%lx, instruction: 0x%lx, instruction_lo: 0x%x, instruction_hi: 0x%x\n", guest_physical, instruction, instruction_lo, instruction_hi);
     // TODO: check this.
-    uint32_t op_code = instruction & 0x7f;
+    uint8_t op_code = instruction & 0x7f;
+    /* funct3 is from bits 12:14. */
+    // uint8_t funct3 = (instruction >> 12) & 0x7;
+
+    // uint8_t compressed_funct3 = (funct3 >> 2) | (op_code & 0b11);
+    /* Make sure data width is word size. TODO: don't know if we need to have this
+     * restriction or how Yanyan found out the data width numbers for funct3. */
+
+    /* If we are in here, we are dealing with a compressed instruction */
+    switch (instruction_lo >> 13) {
+        case FUNCT3_CSW:
+            LOG_VMM("compressed store\n");
+            return (struct fault_instruction){
+                .op_code = OP_CODE_STORE,
+                .width = 2,
+                .rs2 = (instruction_lo >> 2) & (BIT(3) - 1),
+            };
+        case FUNCT3_CLW:
+            LOG_VMM("compressed load\n");
+            return (struct fault_instruction){
+                .op_code = OP_CODE_LOAD,
+                .width = 2,
+                .rd = (instruction_lo >> 2) & (BIT(3) - 1),
+            };
+        default:
+            break;
+    }
+
     switch (op_code) {
     case OP_CODE_STORE:
-        LOG_VMM("got store op\n");
+        LOG_VMM("store\n");
+        return (struct fault_instruction){
+            .op_code = OP_CODE_STORE,
+            .width = 4,
+            .rs2 = (instruction >> 20) & (BIT(5) - 1),
+        };
     case OP_CODE_LOAD:
-        LOG_VMM("got load op\n");
-        break;
+        LOG_VMM("load\n");
+        return (struct fault_instruction){
+            .op_code = OP_CODE_LOAD,
+            .width = 4,
+            .rd = (instruction >> 7) & (BIT(5) - 1),
+        };
     default:
         LOG_VMM_ERR("invalid op code 0x%x\n", op_code);
         break;
     }
+
+    // assert(funct3 == 2);
+
+    /* TODO: not sure if there's a better way to do this */
+    LOG_VMM_ERR("could not decode instruction");
+    assert(false);
+
+    return (struct fault_instruction){ 0 };
 }
 
 char *fault_to_string(seL4_Word fault_label) {
@@ -299,11 +357,11 @@ bool fault_handle(size_t vcpu_id, microkit_msginfo msginfo) {
     bool success = false;
     switch (label) {
         case seL4_Fault_VMFault: {
-            LOG_VMM("fault on addr 0x%lx\n", seL4_GetMR(seL4_VMFault_Addr));
+            LOG_VMM("fault on addr 0x%lx at pc 0x%lx\n", seL4_GetMR(seL4_VMFault_Addr), regs.pc);
             seL4_Word addr = seL4_GetMR(seL4_VMFault_Addr);
             seL4_Word fsr = seL4_GetMR(seL4_VMFault_FSR);
             if (addr >= PLIC_ADDR && addr < PLIC_ADDR + PLIC_SIZE) {
-                LOG_VMM("handling plic 0x%lx\n", addr);
+                assert(seL4_GetMR(seL4_VMFault_IP) == regs.pc);
                 return plic_handle_fault(vcpu_id, addr - PLIC_ADDR, fsr, &regs);
             }
             return false;

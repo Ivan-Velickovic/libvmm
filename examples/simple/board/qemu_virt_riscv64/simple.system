@@ -9,7 +9,7 @@
 
     <memory_region name="serial" size="0x1_000" phys_addr="0x10000000" />
 
-    <protection_domain name="VMM" priority="254">
+    <protection_domain name="VMM" priority="254" stack_size="0x2000">
         <program_image path="vmm.elf" />
         <map mr="guest_ram" vaddr="0x80000000" perms="rw" setvar_vaddr="guest_ram_vaddr" />
         <virtual_machine name="linux">

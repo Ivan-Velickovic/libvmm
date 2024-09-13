@@ -17,6 +17,7 @@
 #if defined(CONFIG_ARCH_RISCV)
 #include <libvmm/arch/riscv/linux.h>
 #include <libvmm/arch/riscv/fault.h>
+#include <libvmm/arch/riscv/plic.h>
 #endif
 
 // @ivanv: ideally we would have none of these hardcoded values
@@ -58,6 +59,10 @@
 /* For simplicity we just enforce the serial IRQ channel number to be the same
  * across platforms. */
 #define SERIAL_IRQ_CH 1
+
+#if defined(BOARD_qemu_virt_riscv64)
+#define VTIMER_IRQ_CH 2
+#endif
 
 #if defined(BOARD_qemu_virt_aarch64)
 #define SERIAL_IRQ 33
@@ -133,10 +138,15 @@ void init(void) {
 void notified(microkit_channel ch) {
     switch (ch) {
         case SERIAL_IRQ_CH: {
-            // bool success = virq_inject(GUEST_VCPU_ID, SERIAL_IRQ);
-            // if (!success) {
-            //     LOG_VMM_ERR("IRQ %d dropped on vCPU %d\n", SERIAL_IRQ, GUEST_VCPU_ID);
-            // }
+            bool success = virq_inject(GUEST_VCPU_ID, SERIAL_IRQ);
+            if (!success) {
+                LOG_VMM_ERR("IRQ %d dropped on vCPU %d\n", SERIAL_IRQ, GUEST_VCPU_ID);
+            }
+            break;
+        }
+        case VTIMER_IRQ_CH: {
+            // TODO: handle vcpu id properly
+            plic_inject_timer_irq(0);
             break;
         }
         default:

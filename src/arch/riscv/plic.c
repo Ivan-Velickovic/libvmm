@@ -4,7 +4,7 @@
 #include <libvmm/arch/riscv/plic.h>
 #include <libvmm/arch/riscv/fault.h>
 
-#define DEBUG_PLIC
+// #define DEBUG_PLIC
 
 #if defined(DEBUG_PLIC)
 #define LOG_PLIC(...) do{ LOG_VMM("PLIC: "); printf(__VA_ARGS__); }while(0)
@@ -36,7 +36,7 @@ struct plic_regs plic_regs;
 #define SIP_TIMER (1 << 5)
 
 bool plic_inject_timer_irq(size_t vcpu_id) {
-    LOG_VMM("injecting timer irq\n");
+    // LOG_VMM("injecting timer irq\n");
     seL4_RISCV_VCPU_ReadRegs_t res = seL4_RISCV_VCPU_ReadRegs(BASE_VCPU_CAP + vcpu_id, seL4_VCPUReg_SIP);
     assert(!res.error);
     seL4_Word sip = res.value;
@@ -52,15 +52,22 @@ bool plic_inject_timer_irq(size_t vcpu_id) {
     return true;
 }
 
+#define SIP_EXTERNAL (1 << 9)
+
 // TODO: this is for context 0
 #define PLIC_IRQ_ENABLE_START 0x2000
 #define PLIC_IRQ_ENABLE_END 0x1F1FFC
 
+// TODO: need to check whether the ENDs are correct, I think they might be off by one
 #define PLIC_IRQ_PRIORITY_START 0x0
 #define PLIC_IRQ_PRIORITY_END 0xFFC
 
 #define PLIC_PRIOTIY_THRESHOLD_CONTEXT_1_START  0x201000
 #define PLIC_PRIOTIY_THRESHOLD_CONTEXT_1_END    0x201004
+#define PLIC_CLAIM_COMPLETE_CONTEXT_1_START     0x201004
+#define PLIC_CLAIM_COMPLETE_CONTEXT_1_END       0x201008
+
+uint32_t plic_pending_irq = 0;
 
 static bool plic_handle_fault_read(size_t vcpu_id, size_t offset, seL4_UserContext *regs, struct fault_instruction *instruction) {
     LOG_PLIC("handling read at offset: 0x%lx\n", offset);
@@ -74,6 +81,17 @@ static bool plic_handle_fault_read(size_t vcpu_id, size_t offset, seL4_UserConte
         size_t enable_group = (offset - PLIC_IRQ_ENABLE_START) % 128;
         LOG_PLIC("reading enable bits for context %d, IRQ source #%d to #%d\n", context, enable_group * 32, ((enable_group + 1) * 32 - 1));
         data = plic_regs.enable_bits[context][enable_group];
+        break;
+    }
+    case PLIC_CLAIM_COMPLETE_CONTEXT_1_START: {
+        LOG_PLIC("read complete claim for pending IRQ %d\n", plic_pending_irq);
+        data = plic_pending_irq;
+        plic_pending_irq = 0;
+        seL4_RISCV_VCPU_ReadRegs_t sip = seL4_RISCV_VCPU_ReadRegs(BASE_VCPU_CAP + vcpu_id, seL4_VCPUReg_SIP);
+        assert(!sip.error);
+        sip.value &= ~SIP_EXTERNAL;
+        int err = seL4_RISCV_VCPU_WriteRegs(BASE_VCPU_CAP + vcpu_id, seL4_VCPUReg_SIP, sip.value);
+        assert(!err);
         break;
     }
     default:
@@ -136,9 +154,20 @@ static bool plic_handle_fault_write(size_t vcpu_id, size_t offset, seL4_UserCont
         plic_regs.priority[irq_index] = data;
         break;
     }
-    case PLIC_PRIOTIY_THRESHOLD_CONTEXT_1_START...PLIC_PRIOTIY_THRESHOLD_CONTEXT_1_END: {
+    case PLIC_PRIOTIY_THRESHOLD_CONTEXT_1_START: {
         LOG_PLIC("write priority threshold for context %d: %d\n", 1, data);
         plic_regs.priority_threshold[1] = data;
+        break;
+    }
+    case PLIC_CLAIM_COMPLETE_CONTEXT_1_START: {
+        LOG_PLIC("write complete claim for pending IRQ %d\n", plic_pending_irq);
+        /* TODO: we should be checking here, and probably in a lot of other places, that the
+         * IRQ attempting to be claimed is actually enabled. */
+        /* TODO: double check but when we get a claim we should be clearing the pending bit */
+        // size_t irq_pending_group = plic_pending_irq / 32;
+        plic_pending_irq = 0;
+        // plic_regs.pending_bits[irq_pending_group] = 0;
+        microkit_irq_ack(1);
         break;
     }
     default:
@@ -148,8 +177,6 @@ static bool plic_handle_fault_write(size_t vcpu_id, size_t offset, seL4_UserCont
 
     return true;
 }
-
-#define SIP_EXTERNAL (1 << 9)
 
 #define PLIC_MAX_REGISTERED_IRQS 10
 
@@ -178,6 +205,12 @@ bool plic_register_irq(size_t vcpu_id, size_t irq, virq_ack_fn_t ack_fn, void *a
 }
 
 bool plic_inject_irq(size_t vcpu_id, int irq) {
+    // size_t context = irq / 128;
+    size_t enable_group = irq / 128;
+    if ((plic_regs.enable_bits[1][enable_group] & (1 << irq)) == 0) {
+        return true;
+    }
+
     seL4_RISCV_VCPU_ReadRegs_t res = seL4_RISCV_VCPU_ReadRegs(BASE_VCPU_CAP + vcpu_id, seL4_VCPUReg_SIP);
     assert(!res.error);
     seL4_Word sip = res.value;
@@ -185,9 +218,12 @@ bool plic_inject_irq(size_t vcpu_id, int irq) {
     size_t irq_pending_group = irq / 32;
     size_t irq_bit = irq % 32;
 
-    LOG_PLIC("injecting for IRQ %d (group: %d, bit: %d)\n", irq, irq_pending_group, irq_bit);
+    // LOG_PLIC("injecting for IRQ %d (group: %d, bit: %d)\n", irq, irq_pending_group, irq_bit);
 
     // TODO: should we check if it's already pending?
+
+    // assert(plic_pending_irq == 0);
+    plic_pending_irq = irq;
 
     plic_regs.pending_bits[irq_pending_group] |= 1 << irq_bit;
 

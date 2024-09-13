@@ -24,7 +24,10 @@
 #define MACHINE_IMPL_ID 0
 #define MACHINE_VENDOR_ID 0
 
-/* What SBI extensions we actually support */
+/*
+ * List of SBI extensions. Note that what extensions
+ * we actually support is a subset of this list.
+ */
 // TODO: support system suspend
 enum sbi_extensions {
     SBI_EXTENSION_BASE = 0x10,
@@ -34,7 +37,7 @@ enum sbi_extensions {
     SBI_EXTENSION_DEBUG_CONSOLE = 0x4442434e,
 };
 
-enum sbi_ {
+enum sbi_debug_extension {
     SBI_CONSOLE_PUTCHAR = 1,
 };
 
@@ -155,10 +158,10 @@ extern uintptr_t guest_ram_vaddr;
 #define FUNCT3_CLW 0b010
 
 struct fault_instruction fault_decode_instruction(size_t vcpu_id, seL4_UserContext *regs, seL4_Word ip) {
-    LOG_VMM("decoding at ip 0x%lx\n", ip);
+    // LOG_VMM("decoding at ip 0x%lx\n", ip);
     seL4_Word guest_physical = guest_virtual_physical(ip, vcpu_id);
     assert(guest_physical >= guest_ram_vaddr && guest_physical <= guest_ram_vaddr + 0x10000000);
-    LOG_VMM("guest_physical: 0x%lx\n", guest_physical);
+    // LOG_VMM("guest_physical: 0x%lx\n", guest_physical);
     /*
      * For guest OSes that use the RISC-V 'C' extension we must read the instruction 16-bits at
      * a time, in order to avoid UB since it is valid for *all* instructions, compressed or not,
@@ -167,7 +170,7 @@ struct fault_instruction fault_decode_instruction(size_t vcpu_id, seL4_UserConte
     uint16_t instruction_lo = *((uint16_t *)guest_physical);
     uint16_t instruction_hi = *(uint16_t *)(guest_physical + 16);
     uint32_t instruction = ((uint32_t)instruction_hi << 16) | instruction_lo;
-    LOG_VMM("guest_physical: 0x%lx, instruction: 0x%lx, instruction_lo: 0x%x, instruction_hi: 0x%x\n", guest_physical, instruction, instruction_lo, instruction_hi);
+    // LOG_VMM("guest_physical: 0x%lx, instruction: 0x%lx, instruction_lo: 0x%x, instruction_hi: 0x%x\n", guest_physical, instruction, instruction_lo, instruction_hi);
     // TODO: check this.
     uint8_t op_code = instruction & 0x7f;
     /* funct3 is from bits 12:14. */
@@ -180,14 +183,12 @@ struct fault_instruction fault_decode_instruction(size_t vcpu_id, seL4_UserConte
     /* If we are in here, we are dealing with a compressed instruction */
     switch (instruction_lo >> 13) {
         case FUNCT3_CSW:
-            LOG_VMM("compressed store\n");
             return (struct fault_instruction){
                 .op_code = OP_CODE_STORE,
                 .width = 2,
                 .rs2 = (instruction_lo >> 2) & (BIT(3) - 1),
             };
         case FUNCT3_CLW:
-            LOG_VMM("compressed load\n");
             return (struct fault_instruction){
                 .op_code = OP_CODE_LOAD,
                 .width = 2,
@@ -199,14 +200,12 @@ struct fault_instruction fault_decode_instruction(size_t vcpu_id, seL4_UserConte
 
     switch (op_code) {
     case OP_CODE_STORE:
-        LOG_VMM("store\n");
         return (struct fault_instruction){
             .op_code = OP_CODE_STORE,
             .width = 4,
             .rs2 = (instruction >> 20) & (BIT(5) - 1),
         };
     case OP_CODE_LOAD:
-        LOG_VMM("load\n");
         return (struct fault_instruction){
             .op_code = OP_CODE_LOAD,
             .width = 4,
@@ -258,7 +257,7 @@ static bool fault_handle_sbi_timer(size_t vcpu_id, seL4_Word sbi_fid, seL4_UserC
             seL4_Error err = seL4_RISCV_VCPU_WriteRegs(BASE_VCPU_CAP + vcpu_id, seL4_VCPUReg_TIMER, stime_value);
             assert(!err);
         }
-        LOG_VMM("setting timer stime_value: 0x%lx, curr_time: 0x%lx\n", stime_value, curr_time);
+        // LOG_VMM("setting timer stime_value: 0x%lx, curr_time: 0x%lx\n", stime_value, curr_time);
 
         regs->a0 = SBI_SUCCESS;
 
@@ -296,7 +295,7 @@ static bool fault_handle_sbi_base(size_t vcpu_id, seL4_Word sbi_fid, seL4_UserCo
         seL4_Word probe_eid = regs->a0;
         switch (probe_eid) {
         case SBI_EXTENSION_BASE:
-        // case SBI_EXTENSION_TIMER:
+        case SBI_EXTENSION_TIMER:
         case SBI_EXTENSION_HART_STATE_MANAGEMENT:
         case SBI_EXTENSION_SYSTEM_RESET:
         case SBI_EXTENSION_DEBUG_CONSOLE:
@@ -304,6 +303,7 @@ static bool fault_handle_sbi_base(size_t vcpu_id, seL4_Word sbi_fid, seL4_UserCo
             regs->a1 = 1;
             return true;
         default:
+        // TODO: print out string name of extension
             LOG_VMM("guest probed for SBI EID 0x%lx that is not supported\n", probe_eid);
             regs->a0 = SBI_ERR_NOT_SUPPORTED;
             return true;
@@ -322,7 +322,7 @@ static bool fault_handle_sbi(size_t vcpu_id, seL4_UserContext *regs) {
     seL4_Word sbi_eid = regs->a7;
     /* SBI function ID for the given extension */
     seL4_Word sbi_fid = regs->a6;
-    LOG_VMM("SBI handle EID 0x%lx, FID: 0x%lx\n", sbi_eid, sbi_fid);
+    // LOG_VMM("SBI handle EID 0x%lx, FID: 0x%lx\n", sbi_eid, sbi_fid);
     switch (sbi_eid) {
     case SBI_EXTENSION_BASE:
         // TODO: error handling
@@ -353,11 +353,11 @@ bool fault_handle(size_t vcpu_id, microkit_msginfo msginfo) {
     seL4_UserContext regs;
     seL4_TCB_ReadRegisters(BASE_VM_TCB_CAP + vcpu_id, false, 0, sizeof(seL4_UserContext) / sizeof(seL4_Word), &regs);
     size_t label = microkit_msginfo_get_label(msginfo);
-    LOG_VMM("handling fault '%s'\n", fault_to_string(label));
+    // LOG_VMM("handling fault '%s'\n", fault_to_string(label));
     bool success = false;
     switch (label) {
         case seL4_Fault_VMFault: {
-            LOG_VMM("fault on addr 0x%lx at pc 0x%lx\n", seL4_GetMR(seL4_VMFault_Addr), regs.pc);
+            // LOG_VMM("fault on addr 0x%lx at pc 0x%lx\n", seL4_GetMR(seL4_VMFault_Addr), regs.pc);
             seL4_Word addr = seL4_GetMR(seL4_VMFault_Addr);
             seL4_Word fsr = seL4_GetMR(seL4_VMFault_FSR);
             if (addr >= PLIC_ADDR && addr < PLIC_ADDR + PLIC_SIZE) {

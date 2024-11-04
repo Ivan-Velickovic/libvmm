@@ -144,11 +144,14 @@ void notified(microkit_channel ch) {
             }
             break;
         }
+/* TODO: temporary */
+#ifdef CONFIG_ARCH_RISCV
         case VTIMER_IRQ_CH: {
             // TODO: handle vcpu id properly
             plic_inject_timer_irq(0);
             break;
         }
+#endif
         default:
             printf("Unexpected channel, ch: 0x%lx\n", ch);
     }

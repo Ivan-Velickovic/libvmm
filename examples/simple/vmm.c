@@ -114,7 +114,7 @@ void init(void) {
         LOG_VMM_ERR("Failed to initialise guest images\n");
         return;
     }
-    /* Initialise the virtual GIC driver */
+    /* Interrupt setup */
     bool success = virq_controller_init(GUEST_VCPU_ID);
     if (!success) {
         LOG_VMM_ERR("Failed to initialise emulated interrupt controller\n");

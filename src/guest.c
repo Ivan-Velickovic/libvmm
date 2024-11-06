@@ -16,15 +16,24 @@ bool guest_start(size_t boot_vcpu_id, uintptr_t kernel_pc, uintptr_t dtb, uintpt
      * guests, there is no point in prematurely generalising this code.
      */
     seL4_UserContext regs = {0};
+    // @ivanv: is it right to have an ifdef here, or something "cleaner"?
+#if defined(CONFIG_ARCH_AARCH64)
     regs.x0 = dtb;
     regs.spsr = 5; // PMODE_EL1h
     regs.pc = kernel_pc;
+#elif defined(CONFIG_ARCH_RISCV)
+    regs.a0 = boot_vcpu_id;
+    regs.a1 = dtb;
+    regs.pc = kernel_pc;
+#else
+#error "Unsupported guest architecture"
+#endif
     /* Write out all the TCB registers */
     seL4_Word err = seL4_TCB_WriteRegisters(
         BASE_VM_TCB_CAP + boot_vcpu_id,
         false, // We'll explcitly start the guest below rather than in this call
         0, // No flags
-        4, // Writing to x0, pc, and spsr. Due to the ordering of seL4_UserContext the count must be 4.
+        sizeof(seL4_UserContext) / sizeof(seL4_Word), // Writing to x0, pc, and spsr. Due to the ordering of seL4_UserContext the count must be 4.
         &regs
     );
     assert(err == seL4_NoError);
@@ -33,9 +42,9 @@ bool guest_start(size_t boot_vcpu_id, uintptr_t kernel_pc, uintptr_t dtb, uintpt
         return false;
     }
     LOG_VMM("starting guest at 0x%lx, DTB at 0x%lx, initial RAM disk at 0x%lx\n",
-        regs.pc, regs.x0, initrd);
+        kernel_pc, dtb, initrd);
     /* Restart the boot vCPU to the program counter of the TCB associated with it */
-    microkit_vcpu_restart(boot_vcpu_id, regs.pc);
+    microkit_vcpu_restart(boot_vcpu_id, kernel_pc);
 
     return true;
 }

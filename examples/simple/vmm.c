@@ -10,15 +10,15 @@
 #include <libvmm/guest.h>
 #include <libvmm/virq.h>
 #include <libvmm/util/util.h>
+#if defined(CONFIG_ARCH_AARCH64)
 #include <libvmm/arch/aarch64/linux.h>
 #include <libvmm/arch/aarch64/fault.h>
-
-// @ivanv: ideally we would have none of these hardcoded values
-// initrd, ram size come from the DTB
-// We can probably add a node for the DTB addr and then use that.
-// Part of the problem is that we might need multiple DTBs for the same example
-// e.g one DTB for VMM one, one DTB for VMM two. we should be able to hide all
-// of this in the build system to avoid doing any run-time DTB stuff.
+#endif
+#if defined(CONFIG_ARCH_RISCV)
+#include <libvmm/arch/riscv/linux.h>
+#include <libvmm/arch/riscv/fault.h>
+#include <libvmm/arch/riscv/plic.h>
+#endif
 
 /*
  * As this is just an example, for simplicity we just make the size of the
@@ -30,6 +30,9 @@
 #if defined(BOARD_qemu_virt_aarch64)
 #define GUEST_DTB_VADDR 0x4f000000
 #define GUEST_INIT_RAM_DISK_VADDR 0x4d700000
+#elif defined(BOARD_qemu_virt_riscv64)
+#define GUEST_DTB_VADDR 0x8f000000
+#define GUEST_INIT_RAM_DISK_VADDR 0x8c000000
 #elif defined(BOARD_rpi4b_hyp)
 #define GUEST_DTB_VADDR 0x2e000000
 #define GUEST_INIT_RAM_DISK_VADDR 0x2d700000
@@ -50,8 +53,14 @@
  * across platforms. */
 #define SERIAL_IRQ_CH 1
 
+#if defined(BOARD_qemu_virt_riscv64)
+#define VTIMER_IRQ_CH 2
+#endif
+
 #if defined(BOARD_qemu_virt_aarch64)
 #define SERIAL_IRQ 33
+#elif defined(BOARD_qemu_virt_riscv64)
+#define SERIAL_IRQ 10
 #elif defined(BOARD_odroidc2_hyp) || defined(BOARD_odroidc4)
 #define SERIAL_IRQ 225
 #elif defined(BOARD_rpi4b_hyp)
@@ -105,13 +114,14 @@ void init(void) {
         LOG_VMM_ERR("Failed to initialise guest images\n");
         return;
     }
-    /* Initialise the virtual GIC driver */
+    /* Interrupt setup */
     bool success = virq_controller_init(GUEST_VCPU_ID);
     if (!success) {
         LOG_VMM_ERR("Failed to initialise emulated interrupt controller\n");
         return;
     }
     success = virq_register(GUEST_VCPU_ID, SERIAL_IRQ, &serial_ack, NULL);
+    assert(success);
     /* Just in case there is already an interrupt available to handle, we ack it here. */
     microkit_irq_ack(SERIAL_IRQ_CH);
     /* Finally start the guest */
@@ -127,6 +137,14 @@ void notified(microkit_channel ch) {
             }
             break;
         }
+/* TODO: temporary */
+#ifdef CONFIG_ARCH_RISCV
+        case VTIMER_IRQ_CH: {
+            // TODO: handle vcpu id properly
+            plic_inject_timer_irq(0);
+            break;
+        }
+#endif
         default:
             printf("Unexpected channel, ch: 0x%lx\n", ch);
     }

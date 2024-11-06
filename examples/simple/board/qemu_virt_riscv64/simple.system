@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright 2022, UNSW (ABN 57 195 873 179)
+
+ SPDX-License-Identifier: BSD-2-Clause
+-->
+<system>
+    <memory_region name="guest_ram" size="0x10_000_000" page_size="0x200_000" />
+
+    <memory_region name="serial" size="0x1_000" phys_addr="0x10000000" />
+
+    <protection_domain name="VMM" priority="254" stack_size="0x2000">
+        <program_image path="vmm.elf" />
+        <map mr="guest_ram" vaddr="0x80000000" perms="rw" setvar_vaddr="guest_ram_vaddr" />
+        <virtual_machine name="linux">
+            <vcpu id="0" />
+            <map mr="guest_ram" vaddr="0x80000000" perms="rwx" />
+            <map mr="serial" vaddr="0x10000000" perms="rw" cached="false" />
+        </virtual_machine>
+
+        <irq irq="10" id="1" />
+        <irq irq="130" id="2" />
+    </protection_domain>
+</system>

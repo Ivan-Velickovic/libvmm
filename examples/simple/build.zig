@@ -6,7 +6,7 @@ const std = @import("std");
 const MicrokitBoard = enum {
     qemu_virt_aarch64,
     qemu_virt_riscv64,
-    ariane,
+    cheshire,
     odroidc4,
     maaxboard,
 };
@@ -37,7 +37,7 @@ const targets = [_]Target {
         },
     },
    .{
-        .board = MicrokitBoard.ariane,
+        .board = MicrokitBoard.cheshire,
         .zig_target = std.Target.Query{
             .cpu_arch = .riscv64,
             .cpu_model = .{ .explicit = &std.Target.riscv.cpu.baseline_rv64 },
@@ -119,7 +119,7 @@ pub fn build(b: *std.Build) !void {
     const arm_vgic_version: usize = switch (microkit_board_option.?) {
         .qemu_virt_aarch64, .odroidc4 => 2,
         .maaxboard => 3,
-        .qemu_virt_riscv64, .ariane => 0,
+        .qemu_virt_riscv64, .cheshire => 0,
     };
 
     const libvmm_dep = b.dependency("libvmm", .{

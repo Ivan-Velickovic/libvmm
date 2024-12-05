@@ -30,6 +30,8 @@
  */
 // TODO: support system suspend
 enum sbi_extensions {
+    SBI_EXTENSION_LEGACY_CONSOLE_PUTCHAR = 0x1,
+    SBI_EXTENSION_LEGACY_CONSOLE_GETCHAR = 0x2,
     SBI_EXTENSION_BASE = 0x10,
     SBI_EXTENSION_TIMER = 0x54494d45,
     SBI_EXTENSION_HART_STATE_MANAGEMENT = 0x48534d,
@@ -322,7 +324,7 @@ static bool fault_handle_sbi(size_t vcpu_id, seL4_UserContext *regs) {
     seL4_Word sbi_eid = regs->a7;
     /* SBI function ID for the given extension */
     seL4_Word sbi_fid = regs->a6;
-    // LOG_VMM("SBI handle EID 0x%lx, FID: 0x%lx\n", sbi_eid, sbi_fid);
+    LOG_VMM("SBI handle EID 0x%lx, FID: 0x%lx\n", sbi_eid, sbi_fid);
     switch (sbi_eid) {
     case SBI_EXTENSION_BASE:
         // TODO: error handling
@@ -332,6 +334,18 @@ static bool fault_handle_sbi(size_t vcpu_id, seL4_UserContext *regs) {
         return true;
     case SBI_EXTENSION_TIMER:
         fault_handle_sbi_timer(vcpu_id, sbi_fid, regs);
+        regs->pc += 4;
+        seL4_TCB_WriteRegisters(BASE_VM_TCB_CAP + vcpu_id, false, 0, sizeof(seL4_UserContext) / sizeof(seL4_Word), regs);
+        return true;
+    case SBI_EXTENSION_LEGACY_CONSOLE_PUTCHAR:
+        printf("%c", regs->a0);
+        regs->a0 = SBI_SUCCESS;
+        regs->pc += 4;
+        seL4_TCB_WriteRegisters(BASE_VM_TCB_CAP + vcpu_id, false, 0, sizeof(seL4_UserContext) / sizeof(seL4_Word), regs);
+        return true;
+    case SBI_EXTENSION_LEGACY_CONSOLE_GETCHAR:
+        /* Not supported by our SBI emulation. On legacy SBI we are supposed to just return -1 for failure. */
+        regs->a0 = -1;
         regs->pc += 4;
         seL4_TCB_WriteRegisters(BASE_VM_TCB_CAP + vcpu_id, false, 0, sizeof(seL4_UserContext) / sizeof(seL4_Word), regs);
         return true;
@@ -353,7 +367,7 @@ bool fault_handle(size_t vcpu_id, microkit_msginfo msginfo) {
     seL4_UserContext regs;
     seL4_TCB_ReadRegisters(BASE_VM_TCB_CAP + vcpu_id, false, 0, sizeof(seL4_UserContext) / sizeof(seL4_Word), &regs);
     size_t label = microkit_msginfo_get_label(msginfo);
-    // LOG_VMM("handling fault '%s'\n", fault_to_string(label));
+    LOG_VMM("handling fault '%s'\n", fault_to_string(label));
     bool success = false;
     switch (label) {
         case seL4_Fault_VMFault: {
@@ -379,24 +393,24 @@ bool fault_handle(size_t vcpu_id, microkit_msginfo msginfo) {
                     // return true;
                 // } else {
                 LOG_VMM_ERR("unknown vCPU virtual instruction fault, data: 0x%lx, pc: 0x%lx\n", data, regs.pc);
-                return false;
                 // }
             } else {
                 LOG_VMM_ERR("unhandled vCPU fault cause: 0x%lx\n", seL4_GetMR(seL4_VCPUFault_Cause));
-                return false;
             }
+            break;
         }
         default:
             /* We have reached a genuinely unexpected case, stop the guest. */
             LOG_VMM_ERR("unknown fault label 0x%lx, stopping guest with ID 0x%lx\n", label, vcpu_id);
             microkit_vcpu_stop(vcpu_id);
-            /* Dump the TCB and vCPU registers to hopefully get information as
-             * to what has gone wrong. */
-            tcb_print_regs(vcpu_id);
-            vcpu_print_regs(vcpu_id);
+            break;
     }
 
     if (!success) {
+        /* Dump the TCB and vCPU registers to hopefully get information as
+         * to what has gone wrong. */
+        tcb_print_regs(vcpu_id);
+        vcpu_print_regs(vcpu_id);
         LOG_VMM_ERR("Failed to handle %s fault\n", fault_to_string(label));
     }
 

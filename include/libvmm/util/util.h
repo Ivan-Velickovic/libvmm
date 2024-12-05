@@ -23,7 +23,7 @@
 #define SEL4_USER_CONTEXT_SIZE 0x24
 #elif defined(CONFIG_ARCH_RISCV)
 // @ivanv: fix
-#define SEL4_USER_CONTEXT_SIZE (sizeof(seL4_UserContext))
+#define SEL4_USER_CONTEXT_SIZE (sizeof(seL4_UserContext) / sizeof(seL4_Word))
 #endif
 
 #ifndef ARRAY_SIZE

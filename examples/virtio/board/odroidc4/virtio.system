@@ -7,7 +7,7 @@
 <system>
     <memory_region name="client_vm_ram_1" size="0x6_000_000" page_size="0x200_000" />
     <memory_region name="client_vm_ram_2" size="0x6_000_000" page_size="0x200_000" />
-    <memory_region name="blk_driver_vm_ram" size="0x6_000_000" page_size="0x200_000" phys_addr="0x20_000_000"/>
+    <memory_region name="blk_driver_vm_ram" size="0xc00_000" page_size="0x200_000" phys_addr="0x20_000_000"/>
     <memory_region name="gic_vcpu" size="0x1_000" phys_addr="0xffc06000" />
     <memory_region name="uart" size="0x1000" phys_addr="0xff803000" />
     <memory_region name="sd" size="0x1000" phys_addr="0xffe05000" />

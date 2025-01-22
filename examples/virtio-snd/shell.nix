@@ -8,8 +8,13 @@ in
   pkgs.mkShell {
     nativeBuildInputs =
     let
-      crossInputs = with pkgs.pkgsCross.aarch64-multiplatform; [
-        alsa-lib
+      crossInputs = with pkgs.pkgsCross.aarch64-multiplatform-musl; [
+        (alsa-lib.overrideAttrs (oldAttrs: {
+          configureFlags = oldAttrs.configureFlags or [] ++ [
+            "--enable-shared=no"
+            "--enable-static=yes"
+          ];
+        }))
       ];
       nativeInputs = with pkgs; [
         llvm
@@ -22,6 +27,7 @@ in
         fakeroot
         cpio
         zig
+        perl
       ];
     in crossInputs ++ nativeInputs;
     hardeningDisable = [ "all" ];

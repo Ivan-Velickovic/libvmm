@@ -7,7 +7,7 @@
 set -e
 
 if [ $# -lt 2 ]; then
-    echo "Usage: $0 <rootfs> <tmpdir> [-o output_rootfs] [--startup files...] [--home files...] [--etc files...]"
+    echo "Usage: $0 <rootfs> <tmpdir> [-o output_rootfs] [--startup files...] [--home files...] [--etc files...] [--init init_file]"
     exit 1
 fi
 
@@ -23,6 +23,7 @@ startup_files=()
 home_files=()
 etc_files=()
 output_rootfs=""
+init_file=""
 
 shift 2
 while [[ $# -gt 0 ]]; do
@@ -47,6 +48,16 @@ while [[ $# -gt 0 ]]; do
                 etc_files+=("$1")
                 shift
             done
+            ;;
+        --init)
+            shift
+            if [[ $# -gt 0 ]]; then
+                init_file=$1
+                shift
+            else
+                echo "Error: --init option requires an argument."
+                exit 1
+            fi
             ;;
         -o)
             shift
@@ -90,6 +101,11 @@ done
 for file in "${etc_files[@]}"; do
     cp -- "$file" "$tmpdir/etc/$(basename "$file")"
 done
+
+if [[ "$init_file" != "" ]]; then
+    cp -- "$init_file" "$tmpdir/init"
+    chmod +x "$tmpdir/init"
+fi
 
 if [[ "$output_rootfs" == /* ]]; then
     final_output_path="$output_rootfs"

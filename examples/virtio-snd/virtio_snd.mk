@@ -54,7 +54,7 @@ CFLAGS_USERLEVEL := \
 		-Wall -Wno-unused-function -Werror \
 		-D_GNU_SOURCE \
 		-I$(VIRTIO_EXAMPLE)/include \
-		-target aarch64-linux-gnu \
+		-target aarch64-linux-musl \
 		$(NIX_LDFLAGS) \
 		$(NIX_CFLAGS_COMPILE)
 #       ^^ Required for macOS / Nix cross compilation so compiler can find alsa-lib.
@@ -68,6 +68,7 @@ include $(UART_DRIVER)/uart_driver.mk
 include $(SERIAL_COMPONENTS)/serial_components.mk
 include $(SND_COMPONENTS)/sound_components.mk
 include $(LIBVMM)/vmm.mk
+include $(LIBVMM_TOOLS)/linux/uio/uio.mk
 include $(LIBVMM_TOOLS)/linux/snd/sound_init.mk
 include $(LIBVMM_TOOLS)/linux/uio_drivers/snd/uio_snd.mk
 
@@ -103,7 +104,7 @@ snd_driver_vm/rootfs.cpio.gz: $(SYSTEM_DIR)/snd_driver_vm/rootfs.cpio.gz \
 	$(SND_DRIVER_VM_USERLEVEL) $(SND_DRIVER_VM_USERLEVEL_INIT) |snd_driver_vm
 	$(LIBVMM)/tools/packrootfs $(SYSTEM_DIR)/snd_driver_vm/rootfs.cpio.gz \
 		snd_driver_vm/rootfs -o $@ \
-		--startup $(SND_DRIVER_VM_USERLEVEL_INIT) \
+		--init $(SND_DRIVER_VM_USERLEVEL_INIT) \
 		--home $(SND_DRIVER_VM_USERLEVEL)
 
 %_vm/vm.dts: $(SYSTEM_DIR)/%_vm/dts/linux.dts \

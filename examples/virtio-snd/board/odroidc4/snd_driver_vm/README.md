@@ -3,7 +3,7 @@
      SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
-# QEMU virt AArch64 images
+# Odroid-C4 images
 
 ## Linux kernel
 

@@ -51,7 +51,7 @@ CFLAGS_USERLEVEL := \
 		-Wall -Wno-unused-function -Werror \
 		-D_GNU_SOURCE \
 		-I$(VIRTIO_EXAMPLE)/include \
-		-target aarch64-linux-gnu
+		-target aarch64-linux-musl
 
 LDFLAGS := -L$(BOARD_DIR)/lib
 LIBS := --start-group -lmicrokit -Tmicrokit.ld libsddf_util_debug.a libvmm.a --end-group
@@ -101,7 +101,7 @@ blk_driver_vm/rootfs.cpio.gz: $(SYSTEM_DIR)/blk_driver_vm/rootfs.cpio.gz \
 	$(BLK_DRIVER_VM_USERLEVEL) $(BLK_DRIVER_VM_USERLEVEL_INIT) |blk_driver_vm
 	$(LIBVMM)/tools/packrootfs $(SYSTEM_DIR)/blk_driver_vm/rootfs.cpio.gz \
 		blk_driver_vm/rootfs -o $@ \
-		--startup $(BLK_DRIVER_VM_USERLEVEL_INIT) \
+		--init $(BLK_DRIVER_VM_USERLEVEL_INIT) \
 		--home $(BLK_DRIVER_VM_USERLEVEL)
 
 blk_storage:

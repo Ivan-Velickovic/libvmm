@@ -34,10 +34,15 @@ libuio.o: $(CHECK_LIBUIO_FLAGS_MD5)
 libuio.o: $(LIBVMM)/tools/linux/uio/libuio.c
 	$(CC_USERLEVEL) $(CFLAGS_USERLEVEL) $(CFLAGS_libuio) -o $@ -c $<
 
+init.o: $(CHECK_LIBUIO_FLAGS_MD5)
+init.o: $(LIBVMM)/tools/linux/uio/init.c
+	$(CC_USERLEVEL) $(CFLAGS_USERLEVEL) $(CFLAGS_libuio) -o $@ -c $<
+
 clean::
-	rm -f libuio.[od] .libuio_cflags-*
+	rm -f libuio.[od] init.[od] .libuio_cflags-*
 
 clobber::
-	rm -f $(UIO_BLK_IMAGES)
+	rm -f $(LIBUIO_IMAGES)
 
 -include libuio.d
+-include init.d

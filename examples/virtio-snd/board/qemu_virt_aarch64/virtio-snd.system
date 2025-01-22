@@ -5,7 +5,7 @@
  SPDX-License-Identifier: BSD-2-Clause
 -->
 <system>
-    <memory_region name="snd_driver_vm_ram" size="0x8_000_000" page_size="0x200_000" phys_addr="0x40000000"/>
+    <memory_region name="snd_driver_vm_ram" size="0x1_400_000" page_size="0x200_000" phys_addr="0x40000000"/>
     <memory_region name="client_vm_ram_1"   size="0x8_000_000" page_size="0x200_000" />
     <memory_region name="client_vm_ram_2"   size="0x8_000_000" page_size="0x200_000" />
     <memory_region name="uart"              size="0x1_000" phys_addr="0x9000000" />

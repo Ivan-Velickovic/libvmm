@@ -1,7 +1,0 @@
-#!/bin/sh
-
-# Copyright 2024, UNSW
-#
-# SPDX-License-Identifier: BSD-2-Clause
-
-/root/uio_blk_driver /dev/vda &

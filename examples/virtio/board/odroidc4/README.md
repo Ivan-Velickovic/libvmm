@@ -27,21 +27,20 @@ make -C linux ARCH=arm64 CROSS_COMPILE=aarch64-none-elf- all -j$(nproc)
 
 The path to the image is: `linux/arch/arm64/boot/Image`.
 
-## Buildroot RootFS image
+## RootFS image
 
 ### Details
 * Image name: `rootfs.cpio.gz`
-* Config name: `buildroot_config`
-* Version: 2022.08-rc2
 
 ### Instructions for reproducing
 
-```
-wget https://buildroot.org/downloads/buildroot-2022.08-rc2.tar.xz
-tar xvf buildroot-2022.08-rc2.tar.xz
-cp buildroot_config buildroot-2022.08-rc2/.config
-make -C buildroot-2022.08-rc2
-```
+You can find instructions for building a minimal root filesystem here [here](/docs/VIRTIO.md#minimal-userspace).
 
-The root filesystem will be located at: `buildroot-2022.08-rc2/output/images/rootfs.cpio.gz` along
-with the other buildroot artefacts.
+You will need to create the following directory structure in the root filesystem for the block driver VM:
+```
+rootfs/
+├── dev/
+├── sys/
+├── modules/
+    ├── virtio_blk.ko
+```

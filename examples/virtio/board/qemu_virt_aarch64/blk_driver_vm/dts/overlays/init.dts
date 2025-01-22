@@ -9,7 +9,7 @@
     /delete-node/ chosen;
 
     memory@40000000 {
-		reg = <0x00 0x40000000 0x00 0x8000000>;
+		reg = <0x00 0x40000000 0x00 0xc00000>;
 		device_type = "memory";
 	};
 
@@ -17,7 +17,7 @@
 		bootargs = "console=hvc0 earlycon=hvc0 pci=nomsi earlyprintk=serial debug loglevel=8 uio_pdrv_genirq.of_id=generic-uio";
         stdout-path = "/virtio-console@0130000";
         linux,stdout-path = "/virtio-console@0130000";
-		linux,initrd-start = <0x47000000>;
-		linux,initrd-end = <0x47f00000>;
+		linux,initrd-start = <0x40400000>;
+		linux,initrd-end = <0x40500000>;
 	};
 };

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright 2023, UNSW
+
+ SPDX-License-Identifier: BSD-2-Clause
+-->
+<system>
+    <memory_region name="guest_ram"   size="0x20000000" phys_addr="0x40000000" page_size="0x200_000" />
+    <memory_region name="virtio_mmio" size="0x4000"     phys_addr="0xa000000" />
+    <memory_region name="serial"      size="0x1_000"    phys_addr="0x9000000" />
+    <memory_region name="gic_vcpu"    size="0x1_000"    phys_addr="0x8040000" />
+    <memory_region name="gic_v2m"     size="0x1000"     phys_addr="0x8020000" />
+
+    <memory_region name="pcie_reg"       size="0x00_10000000" phys_addr="0x40_10000000" page_size="0x200_000" />
+    <memory_region name="pcie_io_mem"    size="0x00_00010000" phys_addr="0x00_3eff0000"/>
+    <memory_region name="pcie_32bit_mem" size="0x00_2ee00000" phys_addr="0x00_10000000" page_size="0x200_000"/>
+    <memory_region name="pcie_64bit_mem" size="0x01_00000000" phys_addr="0x80_00000000" page_size="0x200_000"/>
+
+    <protection_domain name="VMM" priority="254">
+        <program_image path="vmm.elf" />
+        <map mr="guest_ram" vaddr="0x40000000" perms="rw" setvar_vaddr="guest_ram_vaddr" />
+
+        <virtual_machine name="linux" id="0">
+            <map mr="guest_ram"   vaddr="0x40000000" perms="rwx" />
+            <map mr="serial"      vaddr="0x9000000"  perms="rw" cached="false" />
+            <map mr="gic_vcpu"    vaddr="0x8010000"  perms="rw" cached="false" />
+            <map mr="virtio_mmio" vaddr="0xa000000"  perms="rw" cached="false" />
+            <map mr="gic_v2m"     vaddr="0x8020000"  perms="rw" cached="false" />
+
+            <map mr="pcie_reg"       vaddr="0x40_10000000" perms="rw" cached="false" />
+            <map mr="pcie_io_mem"    vaddr="0x00_3eff0000" perms="rw" cached="false" />
+            <map mr="pcie_32bit_mem" vaddr="0x00_10000000" perms="rw" cached="false" />
+            <map mr="pcie_64bit_mem" vaddr="0x80_00000000" perms="rw" cached="false" />
+        </virtual_machine>
+
+        <!-- For the pass-through UART -->
+        <irq irq="33" id="1" />
+        <irq irq="37" id="2" />
+    </protection_domain>
+</system>

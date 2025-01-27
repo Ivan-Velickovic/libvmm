@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright 2022, UNSW (ABN 57 195 873 179)
+
+ SPDX-License-Identifier: BSD-2-Clause
+-->
+<system>
+    <!-- We allocate 256MiB of RAM for the guest. -->
+    <memory_region name="guest_ram" size="0x10_000_000" phys_addr="0x20000000" page_size="0x200_000" />
+    <memory_region name="bus1" size="0x200000" phys_addr="0xff600000" />
+    <memory_region name="bus2" size="0x200000" phys_addr="0xff800000" />
+    <memory_region name="bus3" size="0x100000" phys_addr="0xffd00000" />
+    <memory_region name="gic_vcpu" size="0x1_000" phys_addr="0xffc06000" />
+
+    <memory_region name="usb_ctrl" size="0x1_000" phys_addr="0xffe09000" />
+    <memory_region name="usb_1" size="0x40000" phys_addr="0xff400000" />
+    <memory_region name="usb_2" size="0x100000" phys_addr="0xff500000" />
+
+    <protection_domain name="VMM" priority="254">
+        <program_image path="vmm.elf" />
+        <map mr="guest_ram" vaddr="0x20000000" perms="rw" setvar_vaddr="guest_ram_vaddr" />
+        <virtual_machine name="linux" id="0">
+            <map mr="guest_ram" vaddr="0x20000000" perms="rwx" />
+            <map mr="bus1" vaddr="0xff600000" perms="rw" cached="false" />
+            <map mr="bus2" vaddr="0xff800000" perms="rw" cached="false" />
+            <map mr="bus3" vaddr="0xffd00000" perms="rw" cached="false" />
+            <map mr="gic_vcpu" vaddr="0xffc02000" perms="rw" cached="false" />
+
+            <map mr="usb_ctrl" vaddr="0xffe09000" perms="rw" cached="false" />
+            <map mr="usb_1" vaddr="0xff400000" perms="rw" cached="false" />
+            <map mr="usb_2" vaddr="0xff500000" perms="rw" cached="false" />
+
+        </virtual_machine>
+        <!-- Serial IRQ -->
+        <irq irq="225" id="1" trigger="edge" />
+
+        <!-- USB -->
+        <irq irq="48" id="2" trigger="level" /> <!-- Controller -->
+        <irq irq="63" id="3" trigger="level" /> <!-- USB 1 -->
+        <irq irq="62" id="4" trigger="level" /> <!-- USB 2 -->
+
+        <!-- @alexbr: not sure what this is -->
+        <irq irq="5" id="5" trigger="level" />
+
+    </protection_domain>
+</system>
+

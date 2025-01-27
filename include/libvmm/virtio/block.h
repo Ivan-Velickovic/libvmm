@@ -134,58 +134,69 @@ struct virtio_blk_outhdr {
 
 #define VIRTIO_BLK_SECTOR_SIZE 512
 
-/* Backend implementation */
+/* Device (backend) implementation */
 #define SDDF_BLK_NUM_HANDLES 1
 #define SDDF_BLK_DEFAULT_HANDLE 0
 /* Maximum number of buffers in sddf data region */
-#define SDDF_MAX_DATA_BUFFERS 8192
+#define SDDF_MAX_DATA_CELLS 8192
+/* Maximum sddf queue capacity */
+#define SDDF_MAX_QUEUE_CAPACITY 8192
 
 #define VIRTIO_BLK_NUM_VIRTQ 1
 #define VIRTIO_BLK_DEFAULT_VIRTQ 0
 
-/* Bookkeeping request data between virtIO and sDDF */
+/* This struct exists to bookkeep request metadata when converting sddf requests
+ * from a virtio request so that it can be later retrieved when converting a
+ * virtio response from sddf response.
+ */
 typedef struct reqbk {
-    uint16_t virtio_desc_head;
-    uintptr_t sddf_data;
-    uint16_t sddf_count;
-    uint32_t sddf_block_number;
-    uintptr_t virtio_data;
-    uint16_t virtio_data_size;
-    /* Only used for unaligned write from virtIO, if not true, this request is the
-    * "read" part of the read-modify-write */
-    bool aligned; 
+  // /* For writing response byte in virtio descriptor */
+  // uint8_t *virtio_resp_byte;
+  /* Descriptor head of the virtio request */
+  uint16_t virtio_desc_head;
+  /* For enqueuing sddf req/resp */
+  uintptr_t sddf_data_cell_base;
+  uint16_t sddf_count;
+  uint32_t sddf_block_number;
+  uintptr_t sddf_data;
+  /* The size of data contained in virtio request */
+  uint32_t virtio_body_size_bytes;
+  /* Indicates this request is an unaligned write from virtIO. When not true,
+   * this request is the "read" part of the read-modify-write. A subsequent
+   * write request will be enqueued to complete the read-modify-write.
+   */
+  bool aligned;
 } reqbk_t;
 
 struct virtio_blk_device {
-    struct virtio_device virtio_device;
-
-    struct virtio_blk_config config;
-    struct virtio_queue_handler vqs[VIRTIO_BLK_NUM_VIRTQ];
-
-    reqbk_t reqbk[SDDF_MAX_DATA_BUFFERS];
-    /* Data struct that handles allocation and freeing of fixed size data cells
-     * in sDDF memory region */
-    fsmalloc_t fsmalloc;
-    bitarray_t fsmalloc_avail_bitarr;
-    word_t fsmalloc_avail_bitarr_words[roundup_bits2words64(SDDF_MAX_DATA_BUFFERS)];
-    /* Index allocator */
-    ialloc_t ialloc;
-    uint32_t ialloc_idxlist[SDDF_MAX_DATA_BUFFERS];
-
-    blk_storage_info_t *storage_info;
-    blk_queue_handle_t queue_h;
-    uintptr_t data_region;
-    int server_ch;
+  struct virtio_device virtio_device;
+  struct virtio_blk_config config;
+  struct virtio_queue_handler vqs[VIRTIO_BLK_NUM_VIRTQ];
+  /* Request bookkeep indexed by the request id */
+  reqbk_t reqsbk[SDDF_MAX_QUEUE_CAPACITY];
+  /* Data struct that handles allocation and freeing of fixed size data cells
+   * in sDDF memory region */
+  fsmalloc_t fsmalloc;
+  bitarray_t fsmalloc_avail_bitarr;
+  word_t fsmalloc_avail_bitarr_words[roundup_bits2words64(SDDF_MAX_DATA_CELLS)];
+  /* Index allocator for sddf request ids */
+  ialloc_t ialloc;
+  uint32_t ialloc_idxlist[SDDF_MAX_QUEUE_CAPACITY];
+  /* Sddf structures */
+  blk_storage_info_t *storage_info;
+  blk_queue_handle_t queue_h;
+  uint32_t queue_capacity;
+  uintptr_t data_region;
+  /* Channel to notify microkit component serving this client */
+  int server_ch;
 };
 
 bool virtio_mmio_blk_init(struct virtio_blk_device *blk_dev,
-                     uintptr_t region_base,
-                     uintptr_t region_size,
-                     size_t virq,
-                     uintptr_t data_region,
-                     size_t data_region_size,
-                     blk_storage_info_t *storage_info,
-                     blk_queue_handle_t *queue_h,
-                     int server_ch);
+                          uintptr_t region_base, uintptr_t region_size,
+                          size_t virq, uintptr_t data_region,
+                          size_t data_region_size,
+                          blk_storage_info_t *storage_info,
+                          blk_queue_handle_t *queue_h, uint32_t queue_capacity,
+                          int server_ch);
 
 bool virtio_blk_handle_resp(struct virtio_blk_device *blk_dev);

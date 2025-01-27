@@ -110,9 +110,9 @@ Welcome to Buildroot
 buildroot login:
 ```
 
-Initially all input is defaulted to guest 1 in green. To switch to input into
-the other guest (red), type in `@2`. The `@` symbol is used to switch between
-clients of the serial system, in this case the red guest is client 2.
+Initially all input is defaulted to guest 0 in red. To switch input into
+the other guest 1 (green), type in `ctrl + \` followed by `1` and then `enter`.
+To switch input to the block driver VM, type in `ctrl + \`, followed by `2` and `enter`.
 
 ### virtIO block
 
@@ -137,6 +137,7 @@ divided by the disk's logical size. Partitions that do not follow this restricti
 are unsupported.
 
 ### QEMU set up
+
 When running on QEMU, read and writes go to an emulated ramdisk instead of to your
 local storage device. The ramdisk file supplied to QEMU is formatted during build
 time to contain a FAT filesystem for both partitions.

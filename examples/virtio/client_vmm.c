@@ -73,31 +73,35 @@ blk_storage_info_t *blk_storage_info;
 
 static struct virtio_blk_device virtio_blk;
 
+_Static_assert(
+    BLK_DATA_REGION_SIZE_CLI0 >= BLK_TRANSFER_SIZE &&
+        BLK_DATA_REGION_SIZE_CLI0 % BLK_TRANSFER_SIZE == 0,
+    "Client0 data region size must be a multiple of the transfer size");
+_Static_assert(
+    BLK_DATA_REGION_SIZE_CLI1 >= BLK_TRANSFER_SIZE &&
+        BLK_DATA_REGION_SIZE_CLI1 % BLK_TRANSFER_SIZE == 0,
+    "Client1 data region size must be a multiple of the transfer size");
+
 void init(void)
 {
-    /* Busy wait until blk device is ready */
-    while (!blk_storage_is_ready(blk_storage_info));
+  /* Busy wait until blk device is ready */
+  while (!blk_storage_is_ready(blk_storage_info))
+    ;
 
-    /* Initialise the VMM, the VCPU(s), and start the guest */
-    LOG_VMM("starting \"%s\"\n", microkit_name);
-    /* Place all the binaries in the right locations before starting the guest */
-    size_t kernel_size = _guest_kernel_image_end - _guest_kernel_image;
-    size_t dtb_size = _guest_dtb_image_end - _guest_dtb_image;
-    size_t initrd_size = _guest_initrd_image_end - _guest_initrd_image;
-    uintptr_t kernel_pc = linux_setup_images(guest_ram_vaddr,
-                                             (uintptr_t) _guest_kernel_image,
-                                             kernel_size,
-                                             (uintptr_t) _guest_dtb_image,
-                                             GUEST_DTB_VADDR,
-                                             dtb_size,
-                                             (uintptr_t) _guest_initrd_image,
-                                             GUEST_INIT_RAM_DISK_VADDR,
-                                             initrd_size
-                                            );
-    if (!kernel_pc) {
-        LOG_VMM_ERR("Failed to initialise guest images\n");
-        return;
-    }
+  /* Initialise the VMM, the VCPU(s), and start the guest */
+  LOG_VMM("starting \"%s\"\n", microkit_name);
+  /* Place all the binaries in the right locations before starting the guest */
+  size_t kernel_size = _guest_kernel_image_end - _guest_kernel_image;
+  size_t dtb_size = _guest_dtb_image_end - _guest_dtb_image;
+  size_t initrd_size = _guest_initrd_image_end - _guest_initrd_image;
+  uintptr_t kernel_pc = linux_setup_images(
+      guest_ram_vaddr, (uintptr_t)_guest_kernel_image, kernel_size,
+      (uintptr_t)_guest_dtb_image, GUEST_DTB_VADDR, dtb_size,
+      (uintptr_t)_guest_initrd_image, GUEST_INIT_RAM_DISK_VADDR, initrd_size);
+  if (!kernel_pc) {
+    LOG_VMM_ERR("Failed to initialise guest images\n");
+    return;
+  }
 
     /* Initialise the virtual GIC driver */
     bool success = virq_controller_init(GUEST_VCPU_ID);
@@ -128,13 +132,10 @@ void init(void)
                    blk_cli_queue_capacity(microkit_name));
 
     /* Initialise virtIO block device */
-    success = virtio_mmio_blk_init(&virtio_blk,
-                                   VIRTIO_BLK_BASE, VIRTIO_BLK_SIZE, VIRTIO_BLK_IRQ,
-                                   blk_data,
-                                   BLK_DATA_SIZE,
-                                   blk_storage_info,
-                                   &blk_queue_h,
-                                   BLK_CH);
+    success = virtio_mmio_blk_init(
+        &virtio_blk, VIRTIO_BLK_BASE, VIRTIO_BLK_SIZE, VIRTIO_BLK_IRQ, blk_data,
+        BLK_DATA_SIZE, blk_storage_info, &blk_queue_h,
+        blk_cli_queue_capacity(microkit_name), BLK_CH);
     assert(success);
 
     /* Finally start the guest */

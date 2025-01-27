@@ -5,7 +5,16 @@
  */
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 
-int driver_init(void **maps, uintptr_t *maps_phys, int num_maps, int argc, char **argv);
-void driver_notified();
+#define MAX_BLK_CLIENTS 64
+
+typedef struct driver_blk_vmm_info_passing {
+  uintptr_t client_data_phys[MAX_BLK_CLIENTS];
+  size_t client_data_size[MAX_BLK_CLIENTS];
+} driver_blk_vmm_info_passing_t;
+
+int driver_init(int uio_fd, void **maps, uintptr_t *maps_phys, int num_maps,
+                int argc, char **argv);
+void driver_notified(int *events_fd, int num_events);

@@ -3,17 +3,20 @@
  *
  * SPDX-License-Identifier: BSD-2-Clause
  */
-#include <stddef.h>
-#include <stdint.h>
-#include <microkit.h>
-#include <libvmm/guest.h>
-#include <libvmm/virq.h>
-#include <libvmm/util/util.h>
-#include <libvmm/virtio/virtio.h>
-#include <libvmm/arch/aarch64/linux.h>
+#include <blk_config.h>
 #include <libvmm/arch/aarch64/fault.h>
+#include <libvmm/arch/aarch64/linux.h>
+#include <libvmm/guest.h>
+#include <libvmm/uio/uio.h>
+#include <libvmm/util/util.h>
+#include <libvmm/virq.h>
+#include <libvmm/virtio/virtio.h>
+#include <microkit.h>
 #include <sddf/serial/queue.h>
 #include <serial_config.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <uio/blk.h>
 
 #define GUEST_RAM_SIZE 0x6000000
 
@@ -39,6 +42,12 @@ extern char _guest_initrd_image_end[];
 /* Microkit will set this variable to the start of the guest RAM memory region. */
 uintptr_t guest_ram_vaddr;
 
+/* Passing info from VMM to block uio driver */
+driver_blk_vmm_info_passing_t *driver_blk_vmm_info_passing;
+uintptr_t virt_blk_data;
+uintptr_t client_vmm_1_blk_data;
+uintptr_t client_vmm_2_blk_data;
+
 /* sDDF block */
 #define BLOCK_CH 1
 #if defined(BOARD_odroidc4)
@@ -49,6 +58,11 @@ uintptr_t guest_ram_vaddr;
 
 #define UIO_IRQ 50
 #define UIO_CH 3
+
+/* This global is kind of redundant, but for now it's needed to be passed
+ * through to the uio-vmm notify handler
+ */
+microkit_channel uio_ch = UIO_CH;
 
 /* Serial */
 #define SERIAL_VIRT_TX_CH 4
@@ -65,11 +79,6 @@ char *serial_rx_data;
 char *serial_tx_data;
 
 static struct virtio_console_device virtio_console;
-
-void uio_ack(size_t vcpu_id, int irq, void *cookie)
-{
-    microkit_notify(UIO_CH);
-}
 
 void init(void)
 {
@@ -120,8 +129,20 @@ void init(void)
                                   SERIAL_VIRT_TX_CH);
     assert(success);
 
-    /* Register the UIO IRQ */
-    virq_register(GUEST_VCPU_ID, UIO_IRQ, uio_ack, NULL);
+    /* Register the block uio driver */
+    success = uio_register_driver(UIO_IRQ, &uio_ch, 0x80000000, 0x1000);
+    assert(success);
+
+    /* Populate vmm info passing to block uio driver */
+    driver_blk_vmm_info_passing->client_data_phys[0] = virt_blk_data;
+    driver_blk_vmm_info_passing->client_data_phys[1] = client_vmm_1_blk_data;
+    driver_blk_vmm_info_passing->client_data_phys[2] = client_vmm_2_blk_data;
+    driver_blk_vmm_info_passing->client_data_size[0] =
+        BLK_DATA_REGION_SIZE_DRIV;
+    driver_blk_vmm_info_passing->client_data_size[1] =
+        BLK_DATA_REGION_SIZE_CLI0;
+    driver_blk_vmm_info_passing->client_data_size[2] =
+        BLK_DATA_REGION_SIZE_CLI1;
 
 #if defined(BOARD_odroidc4)
     /* Register the SD card IRQ */

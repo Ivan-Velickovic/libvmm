@@ -5,8 +5,8 @@
  SPDX-License-Identifier: BSD-2-Clause
 -->
 <system>
-    <memory_region name="client_vm_ram_1" size="0x6_000_000" page_size="0x200_000" />
-    <memory_region name="client_vm_ram_2" size="0x6_000_000" page_size="0x200_000" />
+    <memory_region name="client_vm_1_ram" size="0x6_000_000" page_size="0x200_000" />
+    <memory_region name="client_vm_2_ram" size="0x6_000_000" page_size="0x200_000" />
     <memory_region name="blk_driver_vm_ram" size="0x6_000_000" page_size="0x200_000" phys_addr="0x20_000_000"/>
     <memory_region name="gic_vcpu" size="0x1_000" phys_addr="0xffc06000" />
     <memory_region name="uart" size="0x1000" phys_addr="0xff803000" />
@@ -18,96 +18,96 @@
 
     <protection_domain name="CLIENT_VMM-1" priority="100">
         <program_image path="client_vmm.elf" />
-        <map mr="client_vm_ram_1" vaddr="0x20000000" perms="rw" setvar_vaddr="guest_ram_vaddr" />
+        <map mr="client_vm_1_ram" vaddr="0x20000000" perms="rw" setvar_vaddr="guest_ram_vaddr" />
 
         <!-- sDDF related regions for virtIO console -->
-        <map mr="tx_queue_serial_vmm_1" vaddr="0x6_000_000" perms="rw" cached="true" setvar_vaddr="serial_tx_queue" />
-        <map mr="rx_queue_serial_vmm_1" vaddr="0x6_001_000" perms="rw" cached="true" setvar_vaddr="serial_rx_queue" />
-        <map mr="tx_data_serial_vmm_1" vaddr="0x6_002_000" perms="rw" cached="true" setvar_vaddr="serial_tx_data" />
-        <map mr="rx_data_serial_vmm_1" vaddr="0x6_004_000" perms="rw" cached="true" setvar_vaddr="serial_rx_data" />
+        <map mr="client_vmm_1_serial_tx_queue" vaddr="0x6_000_000" perms="rw" cached="true" setvar_vaddr="serial_tx_queue" />
+        <map mr="client_vmm_1_serial_rx_queue" vaddr="0x6_001_000" perms="rw" cached="true" setvar_vaddr="serial_rx_queue" />
+        <map mr="client_vmm_1_serial_tx_data" vaddr="0x6_002_000" perms="rw" cached="true" setvar_vaddr="serial_tx_data" />
+        <map mr="client_vmm_1_serial_rx_data" vaddr="0x6_004_000" perms="rw" cached="true" setvar_vaddr="serial_rx_data" />
 
         <!-- sDDF related regions for virtIO block -->
-        <map mr="blk_storage_info_vmm_1" vaddr="0x30000000" perms="rw" cached="false" setvar_vaddr="blk_storage_info" />
-        <map mr="req_blk_vmm_1" vaddr="0x103_800_000" perms="rw" cached="false" setvar_vaddr="blk_req_queue" />
-        <map mr="resp_blk_vmm_1" vaddr="0x103_a00_000" perms="rw" cached="false" setvar_vaddr="blk_resp_queue" />
-        <map mr="data_blk_vmm_1" vaddr="0x30600000" perms="rw" cached="true" setvar_vaddr="blk_data" />
+        <map mr="client_vmm_1_blk_storage_info" vaddr="0x30000000" perms="rw" cached="false" setvar_vaddr="blk_storage_info" />
+        <map mr="client_vmm_1_blk_req_queue" vaddr="0x103_800_000" perms="rw" cached="false" setvar_vaddr="blk_req_queue" />
+        <map mr="client_vmm_1_blk_resp_queue" vaddr="0x103_a00_000" perms="rw" cached="false" setvar_vaddr="blk_resp_queue" />
+        <map mr="client_vmm_1_blk_data" vaddr="0x30600000" perms="rw" cached="true" setvar_vaddr="blk_data" />
 
         <virtual_machine name="client_linux-1" priority="100">
             <vcpu id="0" />
-            <map mr="client_vm_ram_1" vaddr="0x20000000" perms="rwx" />
+            <map mr="client_vm_1_ram" vaddr="0x20000000" perms="rwx" />
             <map mr="gic_vcpu" vaddr="0xffc02000" perms="rw" cached="false" />
         </virtual_machine>
     </protection_domain>
 
     <protection_domain name="CLIENT_VMM-2" priority="100">
         <program_image path="client_vmm.elf" />
-        <map mr="client_vm_ram_2" vaddr="0x20000000" perms="rw" setvar_vaddr="guest_ram_vaddr" />
+        <map mr="client_vm_2_ram" vaddr="0x20000000" perms="rw" setvar_vaddr="guest_ram_vaddr" />
 
         <!-- sDDF related regions for virtIO console -->
-        <map mr="tx_queue_serial_vmm_2" vaddr="0x6_000_000" perms="rw" cached="true" setvar_vaddr="serial_tx_queue" />
-        <map mr="rx_queue_serial_vmm_2" vaddr="0x6_001_000" perms="rw" cached="true" setvar_vaddr="serial_rx_queue" />
-        <map mr="tx_data_serial_vmm_2" vaddr="0x6_002_000" perms="rw" cached="true" setvar_vaddr="serial_tx_data" />
-        <map mr="rx_data_serial_vmm_2" vaddr="0x6_004_000" perms="rw" cached="true" setvar_vaddr="serial_rx_data" />
+        <map mr="client_vmm_2_serial_tx_queue" vaddr="0x6_000_000" perms="rw" cached="true" setvar_vaddr="serial_tx_queue" />
+        <map mr="client_vmm_2_serial_rx_queue" vaddr="0x6_001_000" perms="rw" cached="true" setvar_vaddr="serial_rx_queue" />
+        <map mr="client_vmm_2_serial_tx_data" vaddr="0x6_002_000" perms="rw" cached="true" setvar_vaddr="serial_tx_data" />
+        <map mr="client_vmm_2_serial_rx_data" vaddr="0x6_004_000" perms="rw" cached="true" setvar_vaddr="serial_rx_data" />
 
         <!-- sDDF related regions for virtIO block -->
-        <map mr="blk_storage_info_vmm_2" vaddr="0x30000000" perms="rw" cached="false" setvar_vaddr="blk_storage_info" />
-        <map mr="req_blk_vmm_2" vaddr="0x103_800_000" perms="rw" cached="false" setvar_vaddr="blk_req_queue" />
-        <map mr="resp_blk_vmm_2" vaddr="0x103_a00_000" perms="rw" cached="false" setvar_vaddr="blk_resp_queue" />
-        <map mr="data_blk_vmm_2" vaddr="0x31600000" perms="rw" cached="true" setvar_vaddr="blk_data" />
+        <map mr="client_vmm_2_blk_storage_info" vaddr="0x30000000" perms="rw" cached="false" setvar_vaddr="blk_storage_info" />
+        <map mr="client_vmm_2_blk_req_queue" vaddr="0x103_800_000" perms="rw" cached="false" setvar_vaddr="blk_req_queue" />
+        <map mr="client_vmm_2_blk_resp_queue" vaddr="0x103_a00_000" perms="rw" cached="false" setvar_vaddr="blk_resp_queue" />
+        <map mr="client_vmm_2_blk_data" vaddr="0x31600000" perms="rw" cached="true" setvar_vaddr="blk_data" />
 
         <virtual_machine name="client_linux-2" priority="100">
             <vcpu id="0" />
-            <map mr="client_vm_ram_2" vaddr="0x20000000" perms="rwx" />
+            <map mr="client_vm_2_ram" vaddr="0x20000000" perms="rwx" />
             <map mr="gic_vcpu" vaddr="0xffc02000" perms="rw" cached="false" />
         </virtual_machine>
     </protection_domain>
 
     <!-- Serial sDDF data regions -->
-    <memory_region name="tx_data_serial_driver" size="0x2_000" page_size="0x1_000" />
-    <memory_region name="rx_data_serial_driver" size="0x2_000" page_size="0x1_000" />
-    <memory_region name="tx_data_serial_vmm_1" size="0x2_000" page_size="0x1_000" />
-    <memory_region name="rx_data_serial_vmm_1" size="0x2_000" page_size="0x1_000" />
-    <memory_region name="tx_data_serial_vmm_2" size="0x2_000" page_size="0x1_000" />
-    <memory_region name="rx_data_serial_vmm_2" size="0x2_000" page_size="0x1_000" />
-    <memory_region name="tx_data_serial_vmm_3" size="0x2_000" page_size="0x1_000" />
-    <memory_region name="rx_data_serial_vmm_3" size="0x2_000" page_size="0x1_000" />
+    <memory_region name="driver_serial_tx_data" size="0x2_000" page_size="0x1_000" />
+    <memory_region name="driver_serial_rx_data" size="0x2_000" page_size="0x1_000" />
+    <memory_region name="client_vmm_1_serial_tx_data" size="0x2_000" page_size="0x1_000" />
+    <memory_region name="client_vmm_1_serial_rx_data" size="0x2_000" page_size="0x1_000" />
+    <memory_region name="client_vmm_2_serial_tx_data" size="0x2_000" page_size="0x1_000" />
+    <memory_region name="client_vmm_2_serial_rx_data" size="0x2_000" page_size="0x1_000" />
+    <memory_region name="driver_blk_vmm_serial_tx_data" size="0x2_000" page_size="0x1_000" />
+    <memory_region name="driver_blk_vmm_serial_rx_data" size="0x2_000" page_size="0x1_000" />
 
     <!-- Serial sDDF queue regions -->
-    <memory_region name="rx_queue_serial_driver" size="0x1_000" page_size="0x1_000"/>
-    <memory_region name="tx_queue_serial_driver" size="0x1_000" page_size="0x1_000"/>
-    <memory_region name="tx_queue_serial_vmm_1" size="0x1_000" page_size="0x1_000"/>
-    <memory_region name="rx_queue_serial_vmm_1" size="0x1_000" page_size="0x1_000"/>
-    <memory_region name="tx_queue_serial_vmm_2" size="0x1_000" page_size="0x1_000"/>
-    <memory_region name="rx_queue_serial_vmm_2" size="0x1_000" page_size="0x1_000"/>
-    <memory_region name="tx_queue_serial_vmm_3" size="0x1_000" page_size="0x1_000"/>
-    <memory_region name="rx_queue_serial_vmm_3" size="0x1_000" page_size="0x1_000"/>
+    <memory_region name="driver_serial_rx_queue" size="0x1_000" page_size="0x1_000"/>
+    <memory_region name="driver_serial_tx_queue" size="0x1_000" page_size="0x1_000"/>
+    <memory_region name="client_vmm_1_serial_tx_queue" size="0x1_000" page_size="0x1_000"/>
+    <memory_region name="client_vmm_1_serial_rx_queue" size="0x1_000" page_size="0x1_000"/>
+    <memory_region name="client_vmm_2_serial_tx_queue" size="0x1_000" page_size="0x1_000"/>
+    <memory_region name="client_vmm_2_serial_rx_queue" size="0x1_000" page_size="0x1_000"/>
+    <memory_region name="driver_blk_vmm_serial_tx_queue" size="0x1_000" page_size="0x1_000"/>
+    <memory_region name="driver_blk_vmm_serial_rx_queue" size="0x1_000" page_size="0x1_000"/>
 
     <!-- Serial TX Virtualiser -->
     <protection_domain name="serial_virt_tx" priority="104">
         <program_image path="serial_virt_tx.elf" />
-        <map mr="tx_queue_serial_driver" vaddr="0x4_000_000" perms="rw" cached="true" setvar_vaddr="tx_queue_drv" />
-        <map mr="tx_queue_serial_vmm_1" vaddr="0x4_001_000" perms="rw" cached="true" setvar_vaddr="tx_queue_cli0" />
-        <map mr="tx_queue_serial_vmm_2" vaddr="0x4_002_000" perms="rw" cached="true"/>
-        <map mr="tx_queue_serial_vmm_3" vaddr="0x4_003_000" perms="rw" cached="true"/>
+        <map mr="driver_serial_tx_queue" vaddr="0x4_000_000" perms="rw" cached="true" setvar_vaddr="tx_queue_drv" />
+        <map mr="client_vmm_1_serial_tx_queue" vaddr="0x4_001_000" perms="rw" cached="true" setvar_vaddr="tx_queue_cli0" />
+        <map mr="client_vmm_2_serial_tx_queue" vaddr="0x4_002_000" perms="rw" cached="true"/>
+        <map mr="driver_blk_vmm_serial_tx_queue" vaddr="0x4_003_000" perms="rw" cached="true"/>
 
-        <map mr="tx_data_serial_driver" vaddr="0x4_004_000" perms="rw" cached="true" setvar_vaddr="tx_data_drv" />
-        <map mr="tx_data_serial_vmm_1" vaddr="0x4_006_000" perms="r" cached="true" setvar_vaddr="tx_data_cli0" />
-        <map mr="tx_data_serial_vmm_2" vaddr="0x4_008_000" perms="r" cached="true"/>
-        <map mr="tx_data_serial_vmm_3" vaddr="0x4_00a_000" perms="r" cached="true"/>
+        <map mr="driver_serial_tx_data" vaddr="0x4_004_000" perms="rw" cached="true" setvar_vaddr="tx_data_drv" />
+        <map mr="client_vmm_1_serial_tx_data" vaddr="0x4_006_000" perms="r" cached="true" setvar_vaddr="tx_data_cli0" />
+        <map mr="client_vmm_2_serial_tx_data" vaddr="0x4_008_000" perms="r" cached="true"/>
+        <map mr="driver_blk_vmm_serial_tx_data" vaddr="0x4_00a_000" perms="r" cached="true"/>
     </protection_domain>
 
     <!-- Serial RX Virtualiser -->
     <protection_domain name="serial_virt_rx" priority="103">
         <program_image path="serial_virt_rx.elf" />
-        <map mr="rx_queue_serial_driver" vaddr="0x4_000_000" perms="rw" cached="true" setvar_vaddr="rx_queue_drv" />
-        <map mr="rx_queue_serial_vmm_1" vaddr="0x4_001_000" perms="rw" cached="true" setvar_vaddr="rx_queue_cli0" />
-        <map mr="rx_queue_serial_vmm_2" vaddr="0x4_002_000" perms="rw" cached="true"/>
-        <map mr="rx_queue_serial_vmm_3" vaddr="0x4_003_000" perms="rw" cached="true"/>
+        <map mr="driver_serial_rx_queue" vaddr="0x4_000_000" perms="rw" cached="true" setvar_vaddr="rx_queue_drv" />
+        <map mr="client_vmm_1_serial_rx_queue" vaddr="0x4_001_000" perms="rw" cached="true" setvar_vaddr="rx_queue_cli0" />
+        <map mr="client_vmm_2_serial_rx_queue" vaddr="0x4_002_000" perms="rw" cached="true"/>
+        <map mr="driver_blk_vmm_serial_rx_queue" vaddr="0x4_003_000" perms="rw" cached="true"/>
 
-        <map mr="rx_data_serial_driver" vaddr="0x4_004_000" perms="r" cached="true" setvar_vaddr="rx_data_drv" />
-        <map mr="rx_data_serial_vmm_1" vaddr="0x4_006_000" perms="rw" cached="true" setvar_vaddr="rx_data_cli0" />
-        <map mr="rx_data_serial_vmm_2" vaddr="0x4_008_000" perms="rw" cached="true"/>
-        <map mr="rx_data_serial_vmm_3" vaddr="0x4_00a_000" perms="rw" cached="true"/>
+        <map mr="driver_serial_rx_data" vaddr="0x4_004_000" perms="r" cached="true" setvar_vaddr="rx_data_drv" />
+        <map mr="client_vmm_1_serial_rx_data" vaddr="0x4_006_000" perms="rw" cached="true" setvar_vaddr="rx_data_cli0" />
+        <map mr="client_vmm_2_serial_rx_data" vaddr="0x4_008_000" perms="rw" cached="true"/>
+        <map mr="driver_blk_vmm_serial_rx_data" vaddr="0x4_00a_000" perms="rw" cached="true"/>
     </protection_domain>
 
     <!-- Serial Driver -->
@@ -115,11 +115,11 @@
         <program_image path="uart_driver.elf" />
         <map mr="uart" vaddr="0x5_000_000" perms="rw" cached="false" setvar_vaddr="uart_base" />
 
-        <map mr="rx_queue_serial_driver" vaddr="0x4_000_000" perms="rw" cached="true" setvar_vaddr="rx_queue" />
-        <map mr="tx_queue_serial_driver" vaddr="0x4_001_000" perms="rw" cached="true" setvar_vaddr="tx_queue" />
+        <map mr="driver_serial_rx_queue" vaddr="0x4_000_000" perms="rw" cached="true" setvar_vaddr="rx_queue" />
+        <map mr="driver_serial_tx_queue" vaddr="0x4_001_000" perms="rw" cached="true" setvar_vaddr="tx_queue" />
 
-        <map mr="rx_data_serial_driver" vaddr="0x4_002_000" perms="rw" cached="true" setvar_vaddr="rx_data" />
-        <map mr="tx_data_serial_driver" vaddr="0x4_004_000" perms="rw" cached="true" setvar_vaddr="tx_data" />
+        <map mr="driver_serial_rx_data" vaddr="0x4_002_000" perms="rw" cached="true" setvar_vaddr="rx_data" />
+        <map mr="driver_serial_tx_data" vaddr="0x4_004_000" perms="rw" cached="true" setvar_vaddr="tx_data" />
 
         <irq irq="225" id="0" trigger="edge" /> <!-- UART interrupt -->
     </protection_domain>
@@ -165,32 +165,38 @@
     </channel>
 
     <!-- Block sDDF regions -->
-    <memory_region name="blk_storage_info_driver" size="0x1000" page_size="0x1000" />
-    <memory_region name="req_blk_driver" size="0x200_000" page_size="0x200_000"/>
-    <memory_region name="resp_blk_driver" size="0x200_000" page_size="0x200_000"/>
-    <memory_region name="data_blk_driver" size="0x200_000" page_size="0x200_000" />
+    <memory_region name="driver_blk_storage_info" size="0x1000" page_size="0x1000"/>
+    <memory_region name="driver_blk_req_queue" size="0x200_000" page_size="0x200_000"/>
+    <memory_region name="driver_blk_resp_queue" size="0x200_000" page_size="0x200_000"/>
+    <memory_region name="driver_blk_data" size="0x200_000" page_size="0x200_000"/>
 
-    <memory_region name="blk_storage_info_vmm_1" size="0x1000" page_size="0x1000" />
-    <memory_region name="req_blk_vmm_1" size="0x200_000" page_size="0x200_000"/>
-    <memory_region name="resp_blk_vmm_1" size="0x200_000" page_size="0x200_000"/>
-    <memory_region name="data_blk_vmm_1" size="0x200_000" page_size="0x200_000" />
+    <memory_region name="client_vmm_1_blk_storage_info" size="0x1000" page_size="0x1000" />
+    <memory_region name="client_vmm_1_blk_req_queue" size="0x200_000" page_size="0x200_000"/>
+    <memory_region name="client_vmm_1_blk_resp_queue" size="0x200_000" page_size="0x200_000"/>
+    <memory_region name="client_vmm_1_blk_data" size="0x200_000" page_size="0x200_000"/>
 
-    <memory_region name="blk_storage_info_vmm_2" size="0x1000" page_size="0x1000" />
-    <memory_region name="data_blk_vmm_2" size="0x200_000" page_size="0x200_000" />
-    <memory_region name="req_blk_vmm_2" size="0x200_000" page_size="0x200_000"/>
-    <memory_region name="resp_blk_vmm_2" size="0x200_000" page_size="0x200_000"/>
+    <memory_region name="client_vmm_2_blk_storage_info" size="0x1000" page_size="0x1000" />
+    <memory_region name="client_vmm_2_blk_req_queue" size="0x200_000" page_size="0x200_000"/>
+    <memory_region name="client_vmm_2_blk_resp_queue" size="0x200_000" page_size="0x200_000"/>
+    <memory_region name="client_vmm_2_blk_data" size="0x200_000" page_size="0x200_000"/>
 
-    <!-- UIO irq status page -->
-    <memory_region name="uio_irq_status" size="0x1000" page_size="0x1000" />
+    <!-- UIO metadata -->
+    <memory_region name="driver_blk_uio_irq_status" size="0x1000" page_size="0x1000" />
+    <memory_region name="driver_blk_vmm_info_passing" size="0x1000" page_size="0x1000" />
 
     <protection_domain name="BLK_DRIVER_VMM" priority="200" budget="100" period="400">
         <program_image path="blk_driver_vmm.elf" />
         <map mr="blk_driver_vm_ram" vaddr="0x20000000" perms="rw" setvar_vaddr="guest_ram_vaddr" />
 
-        <map mr="tx_queue_serial_vmm_3" vaddr="0x6_000_000" perms="rw" cached="true" setvar_vaddr="serial_tx_queue" />
-        <map mr="rx_queue_serial_vmm_3" vaddr="0x6_001_000" perms="rw" cached="true" setvar_vaddr="serial_rx_queue" />
-        <map mr="tx_data_serial_vmm_3" vaddr="0x6_002_000" perms="rw" cached="true" setvar_vaddr="serial_tx_data" />
-        <map mr="rx_data_serial_vmm_3" vaddr="0x6_004_000" perms="rw" cached="true" setvar_vaddr="serial_rx_data" />
+        <map mr="driver_blk_vmm_serial_tx_queue" vaddr="0x6_000_000" perms="rw" cached="true" setvar_vaddr="serial_tx_queue" />
+        <map mr="driver_blk_vmm_serial_rx_queue" vaddr="0x6_001_000" perms="rw" cached="true" setvar_vaddr="serial_rx_queue" />
+        <map mr="driver_blk_vmm_serial_tx_data" vaddr="0x6_002_000" perms="rw" cached="true" setvar_vaddr="serial_tx_data" />
+        <map mr="driver_blk_vmm_serial_rx_data" vaddr="0x6_004_000" perms="rw" cached="true" setvar_vaddr="serial_rx_data" />
+
+        <map mr="driver_blk_vmm_info_passing" vaddr="0x80200000" perms="rw" cached="false" setvar_vaddr="driver_blk_vmm_info_passing" />
+        <setvar symbol="virt_blk_data" region_paddr="driver_blk_data" />
+        <setvar symbol="client_vmm_1_blk_data" region_paddr="client_vmm_1_blk_data" />
+        <setvar symbol="client_vmm_2_blk_data" region_paddr="client_vmm_2_blk_data" />
 
         <virtual_machine name="blk_driver_linux" priority="200">
             <vcpu id="0" />
@@ -206,14 +212,17 @@
             <map mr="bus2-2" vaddr="0xff804000" perms="rw" cached="false" />
             <map mr="bus3" vaddr="0xffd00000" perms="rw" cached="false" />
 
-            <!-- sDDF block -->
-            <map mr="blk_storage_info_driver" vaddr="0x40000000" perms="rw" cached="false" />
-            <map mr="req_blk_driver" vaddr="0x40200000" perms="rw" cached="false" />
-            <map mr="resp_blk_driver" vaddr="0x40400000" perms="rw" cached="false" />
-            <map mr="data_blk_driver" vaddr="0x40800000" perms="rw" cached="true" />
+            <!-- UIO metadata -->
+            <map mr="driver_blk_uio_irq_status" vaddr="0x79800000" perms="rw" cached="false" />
+            <map mr="driver_blk_vmm_info_passing" vaddr="0x80200000" perms="rw" cached="false" />
 
-            <!-- UIO irq status -->
-            <map mr="uio_irq_status" vaddr="0x39800000" perms="rw" cached="true" />
+            <!-- sDDF block -->
+            <map mr="driver_blk_storage_info" vaddr="0x80400000" perms="rw" cached="false" />
+            <map mr="driver_blk_req_queue" vaddr="0x80600000" perms="rw" cached="false" />
+            <map mr="driver_blk_resp_queue" vaddr="0x80800000" perms="rw" cached="false" />
+            <map mr="driver_blk_data" vaddr="0x80a00000" perms="rw" cached="true" />
+            <map mr="client_vmm_1_blk_data" vaddr="0x80c00000" perms="rw" cached="true" />
+            <map mr="client_vmm_2_blk_data" vaddr="0x80e00000" perms="rw" cached="true" />
         </virtual_machine>
         <!-- SD Card -->
         <irq irq="222" id="1"/>
@@ -221,19 +230,22 @@
 
     <protection_domain name="BLK_VIRT" priority="150" budget="100" period="400">
         <program_image path="blk_virt.elf" />
-        <map mr="blk_storage_info_driver" vaddr="0x40000000" perms="rw" cached="false" setvar_vaddr="blk_driver_storage_info" />
-        <map mr="req_blk_driver" vaddr="0x40200000" perms="rw" cached="false" setvar_vaddr="blk_driver_req_queue" />
-        <map mr="resp_blk_driver" vaddr="0x40400000" perms="rw" cached="false" setvar_vaddr="blk_driver_resp_queue" />
-        <map mr="data_blk_driver" vaddr="0x40800000" perms="rw" cached="true" setvar_vaddr="blk_driver_data" />
+        <map mr="driver_blk_storage_info" vaddr="0x20000000" perms="rw" cached="false" setvar_vaddr="blk_driver_storage_info" />
+        <map mr="driver_blk_req_queue" vaddr="0x20200000" perms="rw" cached="false" setvar_vaddr="blk_driver_req_queue" />
+        <map mr="driver_blk_resp_queue" vaddr="0x20400000" perms="rw" cached="false" setvar_vaddr="blk_driver_resp_queue" />
+        <map mr="driver_blk_data" vaddr="0x20800000" perms="rw" cached="true" setvar_vaddr="blk_driver_data" />
+        <setvar symbol="blk_data_paddr_driver" region_paddr="driver_blk_data" />
 
-        <map mr="blk_storage_info_vmm_1" vaddr="0x30000000" perms="rw" cached="false" setvar_vaddr="blk_client_storage_info" />
-        <map mr="blk_storage_info_vmm_2" vaddr="0x30200000" perms="rw" cached="false" />
-        <map mr="req_blk_vmm_1" vaddr="0x31000000" perms="rw" cached="false" setvar_vaddr="blk_client_req_queue" />
-        <map mr="req_blk_vmm_2" vaddr="0x31200000" perms="rw" cached="false" />
-        <map mr="resp_blk_vmm_1" vaddr="0x32000000" perms="rw" cached="false" setvar_vaddr="blk_client_resp_queue" />
-        <map mr="resp_blk_vmm_2" vaddr="0x32200000" perms="rw" cached="false" />
-        <map mr="data_blk_vmm_1" vaddr="0x33000000" perms="rw" cached="true" setvar_vaddr="blk_client_data"/>
-        <map mr="data_blk_vmm_2" vaddr="0x33200000" perms="rw" cached="true" />
+        <map mr="client_vmm_1_blk_storage_info" vaddr="0x30000000" perms="rw" cached="false" setvar_vaddr="blk_client_storage_info" />
+        <map mr="client_vmm_2_blk_storage_info" vaddr="0x30001000" perms="rw" cached="false" />
+        <map mr="client_vmm_1_blk_req_queue" vaddr="0x31000000" perms="rw" cached="false" setvar_vaddr="blk_client_req_queue" />
+        <map mr="client_vmm_2_blk_req_queue" vaddr="0x31200000" perms="rw" cached="false" />
+        <map mr="client_vmm_1_blk_resp_queue" vaddr="0x32000000" perms="rw" cached="false" setvar_vaddr="blk_client_resp_queue" />
+        <map mr="client_vmm_2_blk_resp_queue" vaddr="0x32200000" perms="rw" cached="false" />
+        <map mr="client_vmm_1_blk_data" vaddr="0x33000000" perms="rw" cached="true" setvar_vaddr="blk_client_data"/>
+        <setvar symbol="blk_client0_data_paddr" region_paddr="client_vmm_1_blk_data" />
+        <map mr="client_vmm_2_blk_data" vaddr="0x33200000" perms="rw" cached="true" />
+        <setvar symbol="blk_client1_data_paddr" region_paddr="client_vmm_2_blk_data" />
     </protection_domain>
 
     <channel>

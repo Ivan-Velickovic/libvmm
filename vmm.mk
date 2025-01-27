@@ -49,7 +49,8 @@ ARCH_INDEP_FILES := src/util/printf.c \
 		    src/virtio/mmio.c \
 		    src/virtio/net.c \
 		    src/virtio/sound.c \
-		    src/guest.c
+		    src/guest.c \
+			src/uio/uio.c \
 
 CFILES := ${AARCH64_FILES} ${ARCH_INDEP_FILES}
 OBJECTS := $(subst src,libvmm,${CFILES:.c=.o})
@@ -72,6 +73,7 @@ libvmm/arch/aarch64/vgic:
 	mkdir -p libvmm/arch/aarch64/vgic/
 	mkdir -p libvmm/util
 	mkdir -p libvmm/virtio
+	mkdir -p libvmm/uio
 
 libvmm.a: ${OBJECTS}
 	ar rv $@ $^
@@ -91,3 +93,4 @@ clobber:: clean
 	rmdir src/arch/aarch64/vgic
 	rmdir src/util
 	rmdir src/virtio
+	rmdir src/uio

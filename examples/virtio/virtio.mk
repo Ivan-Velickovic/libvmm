@@ -37,6 +37,7 @@ CFLAGS := \
 	  -I$(BOARD_DIR)/include \
 	  -I$(SDDF)/include \
 	  -I$(LIBVMM)/include \
+	  -I$(LIBVMM)/tools/linux/include \
 	  -I$(VIRTIO_EXAMPLE)/include \
 	  -I$(SDDF)/$(LWIPDIR)/include \
 	  -I$(SDDF)/$(LWIPDIR)/include/ipv4 \

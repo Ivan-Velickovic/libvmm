@@ -1,0 +1,23 @@
+#!/bin/sh
+
+# Copyright 2024, UNSW
+#
+# SPDX-License-Identifier: BSD-2-Clause
+
+# Change this if you want to use Wi-Fi for example.
+# Although Wi-Fi needs more auth setup
+NET_INF='eth0'
+
+# The sleep command is needed because the full eth uplink actually take place some time later
+# after the `ip link set "$NET_INF" up` finish
+ip link show && ip link set "$NET_INF" up && sleep 8 && \
+
+# Turn off HW offloading to prevent Linux from joining 2 TCP segments together which messes with LWIP badly
+echo "ethtool -K $NET_INF gso off" && \
+ethtool -K "$NET_INF" gso off && \
+echo "ethtool -K $NET_INF gro off" && \
+ethtool -K "$NET_INF" gro off && \
+echo "ethtool -K $NET_INF tx off rx off" && \
+ethtool -K "$NET_INF" tx off rx off && \
+
+chmod +x /root/uio_net_driver && /root/uio_net_driver "$NET_INF"

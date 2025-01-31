@@ -107,6 +107,19 @@ simulate_zig() {
     ./ci/buildroot_login.exp ${BUILD_DIR}/bin/loader.img
 }
 
+build_net() {
+    BOARD=$1
+    CONFIG=$2
+    echo "CI|INFO: building net example via Make with board: $BOARD and config: $CONFIG"
+    BUILD_DIR="${PWD}/build/examples/net/make/${BOARD}/${CONFIG}"
+    mkdir -p ${BUILD_DIR}
+    make -C examples/net -B \
+        BUILD_DIR=${BUILD_DIR} \
+        MICROKIT_CONFIG=${CONFIG} \
+        MICROKIT_BOARD=${BOARD} \
+        MICROKIT_SDK=${SDK_PATH}
+}
+
 build_simple_make "qemu_virt_aarch64" "debug"
 simulate_simple_make "qemu_virt_aarch64" "debug"
 build_simple_make "qemu_virt_aarch64" "release"
@@ -155,6 +168,9 @@ build_virtio "qemu_virt_aarch64" "debug"
 build_virtio "qemu_virt_aarch64" "release"
 # build_virtio "odroidc4" "debug"
 # build_virtio "odroidc4" "release"
+
+build_net "odroidc4" "debug"
+build_net "odroidc4" "release"
 
 echo ""
 echo "CI|INFO: Passed all VMM tests"
